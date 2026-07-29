@@ -1,13 +1,13 @@
 {if:{js:['notsobot9555', 'brackydonotsuspend', 'alphabet0204newaccount', 'eissaaleissa', 'dcge2011fixed_08416','mpgarv','qrs0767_56497'].includes(discord.user.username)}|=|true|then:you can't use this tag|else:{sh:load {iv}
-mkdir -p ./displacemaps
-curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov" &
+mkdir -p ./displacemaps ./output
+curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov" >/dev/null 2>&1 &
 
-# Run ImageMagick tasks concurrently
-magick hald:4 -modulate 100,100,130 hslhue_54.ppm &
-magick hald:4 -modulate 100,100,270 hslhue_-54.ppm &
-magick hald:4 -modulate 100,100,0 hslhue_180.ppm &
-magick hald:4 -modulate 100,100,112 hslhue_22.ppm &
-magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm &
+# Run ImageMagick tasks quietly in background
+magick hald:4 -modulate 100,100,130 hslhue_54.ppm >/dev/null 2>&1 &
+magick hald:4 -modulate 100,100,270 hslhue_-54.ppm >/dev/null 2>&1 &
+magick hald:4 -modulate 100,100,0 hslhue_180.ppm >/dev/null 2>&1 &
+magick hald:4 -modulate 100,100,112 hslhue_22.ppm >/dev/null 2>&1 &
+magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm >/dev/null 2>&1 &
 wait
 
 vidlen=$(ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0")
@@ -16,6 +16,75 @@ e={or:{arg:1}|0.85}
 use_tempo="{lower:{arg:2}}"
 target_len={or:{arg:3}|5}
 alt_1avi="{lower:{arg:4}}"
+
+t=$(awk -v e="$e" 'BEGIN{ printf "%.4f", e}')
+t2=$(awk -v e="$e" 'BEGIN{ printf "%.4f", (e/2)}')
+t3=$(awk -v s="$s" -v e="$e" 'BEGIN{ printf "%.4f", s+e}')
+t5=$(awk -v s="$s" -v target_len="$target_len" 'BEGIN{ printf "%.4f", s+target_len}')
+
+if [ "$use_tempo" = "true" ]; then f2="tempo=1.059:"; f3="tempo=0.890:"; f6="tempo=2^(2/12):"; f8=":tempo=1.389"; f15="tempo=0.94:"; f17="tempo=2^(-4/12):"; f22="tempo=2:"; f24="tempo=2.1189:"; else f2=""; f3=""; f6=""; f8=""; f15=""; f17=""; f22=""; f24=""; fi
+
+# Standardized Video & Audio Settings (Fixes playback corruption & silent execution)
+C="-y -loglevel error -c:v libx264 -preset ultrafast -crf 22 -r 30 -c:a aac -ar 44100 -pix_fmt yuv420p"
+R="window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency"
+
+ffmpeg -i $FILE_1 -vf scale=640:360,setsar=1:1 -ss $s -to $t3 $C 0.mp4
+ffmpeg -i $FILE_1 -vf scale=640:360,setsar=1:1 -ss $s -to $t5 $C 0_long.mp4
+
+w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 0.mp4)
+h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.mp4)
+
+if [ "$alt_1avi" = "true" ]; then ffmpeg -i $FILE_1 -vf scale=640:360,setsar=1:1 -ss $e -to $t3 $C 1.mp4; else ffmpeg -i 0.mp4 -t $t $C 1.mp4; fi
+
+ffmpeg -i 0.mp4 -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):${f2}$R" -t $t $C 2.mp4
+ffmpeg -i 0.mp4 -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-2/12):${f3}$R" -map "[v]" -map 0:a -t $t $C 3.mp4
+
+ffmpeg -i 0.mp4 -t $t2 $C 5.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_22.ppm,[in]haldclut",hflip,format=yuv420p -af "rubberband=pitch=2^(2/12):${f6}window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency" -t $t2 $C 6.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):${f2}$R" -t $t2 $C 7.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_108_30.ppm,[in]haldclut,format=yuv420p,format=yuv444p,scale=640:640,geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))',scale=$w:$h,setsar=1:1,format=yuv420p" -af "rubberband=pitch=2^(3/12):$R${f8}" -t $t2 $C 8.mp4
+ffmpeg -i 0.mp4 -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-2/12):${f3}$R" -map "[v]" -map 0:a -t $t2 $C 9.mp4
+ffmpeg -i 0.mp4 -vf swapuv -t $t2 $C 10.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_-54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(-1/12):${f15}$R" -t $t2 $C 15.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_180.ppm,[in]haldclut",format=yuv420p,negate,format=yuv420p -af "rubberband=pitch=2^(-4/12):${f17}$R" -t $t2 $C 17.mp4
+ffmpeg -i 0.mp4 -vf negate,hflip -af "rubberband=pitch=2^(12/12):${f22}$R" -t $t2 $C 22.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p,negate,hflip,format=yuv420p -af "rubberband=pitch=2^(13/12):${f24}$R" -t $t2 $C 24.mp4
+ffmpeg -i 0_long.mp4 -vf "movie=hslhue_108_30.ppm,[in]haldclut,format=yuv420p,format=yuv444p,scale=640:640,geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))',scale=$w:$h,setsar=1:1,format=yuv420p" -af "aloop=loop=-1:size=2e9,rubberband=pitch=2^(3/12):$R${f8}" -t $target_len $C 28.mp4
+
+cat << 'EOF' > list.txt
+file '1.mp4'
+file '2.mp4'
+file '3.mp4'
+file '2.mp4'
+file '5.mp4'
+file '6.mp4'
+file '7.mp4'
+file '8.mp4'
+file '9.mp4'
+file '10.mp4'
+file '7.mp4'
+file '8.mp4'
+file '9.mp4'
+file '10.mp4'
+file '15.mp4'
+file '7.mp4'
+file '17.mp4'
+file '9.mp4'
+file '15.mp4'
+file '7.mp4'
+file '5.mp4'
+file '22.mp4'
+file '7.mp4'
+file '24.mp4'
+file '9.mp4'
+file '10.mp4'
+file '7.mp4'
+file '28.mp4'
+EOF
+
+# Concatenate cleanly with faststart header for instant Discord video player streaming
+ffmpeg -y -loglevel error -f concat -safe 0 -i list.txt -c:v libx264 -preset ultrafast -crf 22 -c:a aac -ar 44100 -pix_fmt yuv420p -movflags +faststart ./output/pwhatextended.mp4}
+}alt_1avi="{lower:{arg:4}}"
 
 t=$(awk -v e="$e" 'BEGIN{ printf "%.4f", e}')
 t2=$(awk -v e="$e" 'BEGIN{ printf "%.4f", (e/2)}')
