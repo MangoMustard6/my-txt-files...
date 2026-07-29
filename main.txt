@@ -23,29 +23,41 @@ t2=$(awk -v e="$e" 'BEGIN{ printf "%.4f", (e/2)}')
 t3=$(awk -v s="$s" -v e="$e" 'BEGIN{ printf "%.4f", s+e}')
 t5=$(awk -v s="$s" -v target_len="$target_len" 'BEGIN{ printf "%.4f", s+target_len}')
 
+# Rubberband Configuration
+R="window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency"
+
 if [ "$use_tempo" = "true" ]; then
-  a2="asetrate=46722,aresample=44100,atempo=0.94387"
-  a3="asetrate=39289,aresample=44100,atempo=1.12246"
-  a6="asetrate=49501,aresample=44100,atempo=0.89090"
-  a8="asetrate=52445,aresample=44100,atempo=0.84090"
-  a15="asetrate=41625,aresample=44100,atempo=1.05946"
-  a17="asetrate=35002,aresample=44100,atempo=1.25992"
-  a22="asetrate=88200,aresample=44100,atempo=0.5"
-  a24="asetrate=93445,aresample=44100,atempo=0.47194"
+  f2="tempo=1.059:"
+  f3="tempo=0.890:"
+  f6="tempo=2^(2/12):"
+  f8=":tempo=1.389"
+  f15="tempo=0.94:"
+  f17="tempo=2^(-4/12):"
+  f22="tempo=2:"
+  f24="tempo=2.1189:"
 else
-  a2="asetrate=46722,aresample=44100"
-  a3="asetrate=39289,aresample=44100"
-  a6="asetrate=49501,aresample=44100"
-  a8="asetrate=52445,aresample=44100"
-  a15="asetrate=41625,aresample=44100"
-  a17="asetrate=35002,aresample=44100"
-  a22="asetrate=88200,aresample=44100"
-  a24="asetrate=93445,aresample=44100"
+  f2=""
+  f3=""
+  f6=""
+  f8=""
+  f15=""
+  f17=""
+  f22=""
+  f24=""
 fi
+
+a2="rubberband=pitch=2^(1/12):${f2}$R"
+a3="rubberband=pitch=2^(-2/12):${f3}$R"
+a6="rubberband=pitch=2^(2/12):${f6}window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency"
+a8="rubberband=pitch=2^(3/12):$R${f8}"
+a15="rubberband=pitch=2^(-1/12):${f15}$R"
+a17="rubberband=pitch=2^(-4/12):${f17}$R"
+a22="rubberband=pitch=2^(12/12):${f22}$R"
+a24="rubberband=pitch=2^(13/12):${f24}$R"
 
 C="-y -loglevel error -c:v libx264 -preset ultrafast -crf 22 -r 30 -c:a aac -ar 44100 -pix_fmt yuv420p"
 
-# Create Base Cuts with Frame-Accurate Output Seeking
+# Base Cuts
 ffmpeg -i $FILE_1 -vf scale=640:360,setsar=1:1 -ss $s -to $t3 $C 0.mp4
 ffmpeg -i $FILE_1 -vf scale=640:360,setsar=1:1 -ss $s -to $t5 $C 0_long.mp4
 
