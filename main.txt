@@ -1,17 +1,15 @@
 {if:{js:['notsobot9555', 'brackydonotsuspend', 'alphabet0204newaccount', 'eissaaleissa', 'dcge2011fixed_08416','mpgarv','qrs0767_56497'].includes(discord.user.username)}|=|true|then:you can't use this tag|else:{sh:load {iv}
-exec >/dev/null 2>&1
-
-# Clean up any leftover temporary files from previous runs
+# Cleanup previous temporary files
 rm -f *.mp4 *.ppm list.txt
 mkdir -p ./displacemaps ./output
 
-# Phase 1: Download displacement map & generate Hald CLUTs in parallel
-curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov" &
-magick hald:4 -modulate 100,100,130 hslhue_54.ppm &
-magick hald:4 -modulate 100,100,270 hslhue_-54.ppm &
-magick hald:4 -modulate 100,100,0 hslhue_180.ppm &
-magick hald:4 -modulate 100,100,112 hslhue_22.ppm &
-magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm &
+# Download displacement map & generate Hald CLUTs (Lightweight background tasks)
+curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov" >/dev/null 2>&1 &
+magick hald:4 -modulate 100,100,130 hslhue_54.ppm >/dev/null 2>&1 &
+magick hald:4 -modulate 100,100,270 hslhue_-54.ppm >/dev/null 2>&1 &
+magick hald:4 -modulate 100,100,0 hslhue_180.ppm >/dev/null 2>&1 &
+magick hald:4 -modulate 100,100,112 hslhue_22.ppm >/dev/null 2>&1 &
+magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm >/dev/null 2>&1 &
 wait
 
 # Smart Argument Handling
@@ -61,39 +59,35 @@ fi
 
 C="-y -loglevel error -c:v libx264 -preset ultrafast -crf 22 -r 30 -c:a aac -ar 44100 -pix_fmt yuv420p"
 
-# Phase 2: Create Base Cuts
-ffmpeg -ss $s -i $FILE_1 -vf scale=640:360,setsar=1:1 -t $e $C 0.mp4 &
-ffmpeg -ss $s -i $FILE_1 -vf scale=640:360,setsar=1:1 -t $target_len $C 0_long.mp4 &
-wait
+# Create Base Cuts
+ffmpeg -ss $s -i $FILE_1 -vf scale=640:360,setsar=1:1 -t $e $C 0.mp4
+ffmpeg -ss $s -i $FILE_1 -vf scale=640:360,setsar=1:1 -t $target_len $C 0_long.mp4
 
 w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 0.mp4)
 h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.mp4)
 
-# Phase 3: Process All 14 Slices Simultaneously in Parallel
+# Process Slices Sequentially to Prevent OOM Crashes
 if [ "$alt_1avi" = "true" ]; then 
-  ffmpeg -ss $e -i $FILE_1 -vf scale=640:360,setsar=1:1 -t $s $C 1.mp4 &
+  ffmpeg -ss $e -i $FILE_1 -vf scale=640:360,setsar=1:1 -t $s $C 1.mp4
 else 
-  ffmpeg -i 0.mp4 -t $t $C 1.mp4 &
+  ffmpeg -i 0.mp4 -t $t $C 1.mp4
 fi
 
-ffmpeg -i 0.mp4 -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "$a2" -t $t $C 2.mp4 &
-ffmpeg -i 0.mp4 -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "$a3" -map "[v]" -map 0:a -t $t $C 3.mp4 &
+ffmpeg -i 0.mp4 -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "$a2" -t $t $C 2.mp4
+ffmpeg -i 0.mp4 -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "$a3" -map "[v]" -map 0:a -t $t $C 3.mp4
 
-ffmpeg -i 0.mp4 -t $t2 $C 5.mp4 &
-ffmpeg -i 0.mp4 -vf "movie=hslhue_22.ppm,[in]haldclut",hflip,format=yuv420p -af "$a6" -t $t2 $C 6.mp4 &
-ffmpeg -i 0.mp4 -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "$a2" -t $t2 $C 7.mp4 &
-ffmpeg -i 0.mp4 -vf "movie=hslhue_108_30.ppm,[in]haldclut,format=yuv420p,format=yuv444p,scale=640:640,geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))',scale=$w:$h,setsar=1:1,format=yuv420p" -af "$a8" -t $t2 $C 8.mp4 &
-ffmpeg -i 0.mp4 -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "$a3" -map "[v]" -map 0:a -t $t2 $C 9.mp4 &
-ffmpeg -i 0.mp4 -vf swapuv -t $t2 $C 10.mp4 &
-ffmpeg -i 0.mp4 -vf "movie=hslhue_-54.ppm,[in]haldclut",format=yuv420p -af "$a15" -t $t2 $C 15.mp4 &
-ffmpeg -i 0.mp4 -vf "movie=hslhue_180.ppm,[in]haldclut",format=yuv420p,negate,format=yuv420p -af "$a17" -t $t2 $C 17.mp4 &
-ffmpeg -i 0.mp4 -vf negate,hflip -af "$a22" -t $t2 $C 22.mp4 &
-ffmpeg -i 0.mp4 -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p,negate,hflip,format=yuv420p -af "$a24" -t $t2 $C 24.mp4 &
-ffmpeg -i 0_long.mp4 -vf "movie=hslhue_108_30.ppm,[in]haldclut,format=yuv420p,format=yuv444p,scale=640:640,geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))',scale=$w:$h,setsar=1:1,format=yuv420p" -af "$a8" -t $target_len $C 28.mp4 &
+ffmpeg -i 0.mp4 -t $t2 $C 5.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_22.ppm,[in]haldclut",hflip,format=yuv420p -af "$a6" -t $t2 $C 6.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "$a2" -t $t2 $C 7.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_108_30.ppm,[in]haldclut,format=yuv420p,format=yuv444p,scale=640:640,geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))',scale=$w:$h,setsar=1:1,format=yuv420p" -af "$a8" -t $t2 $C 8.mp4
+ffmpeg -i 0.mp4 -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "$a3" -map "[v]" -map 0:a -t $t2 $C 9.mp4
+ffmpeg -i 0.mp4 -vf swapuv -t $t2 $C 10.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_-54.ppm,[in]haldclut",format=yuv420p -af "$a15" -t $t2 $C 15.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_180.ppm,[in]haldclut",format=yuv420p,negate,format=yuv420p -af "$a17" -t $t2 $C 17.mp4
+ffmpeg -i 0.mp4 -vf negate,hflip -af "$a22" -t $t2 $C 22.mp4
+ffmpeg -i 0.mp4 -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p,negate,hflip,format=yuv420p -af "$a24" -t $t2 $C 24.mp4
+ffmpeg -i 0_long.mp4 -vf "movie=hslhue_108_30.ppm,[in]haldclut,format=yuv420p,format=yuv444p,scale=640:640,geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))',scale=$w:$h,setsar=1:1,format=yuv420p" -af "$a8" -t $target_len $C 28.mp4
 
-wait
-
-# Concat Sequence
 cat << 'EOF' > list.txt
 file '1.mp4'
 file '2.mp4'
@@ -125,10 +119,9 @@ file '7.mp4'
 file '28.mp4'
 EOF
 
-# Assembly Output
 ffmpeg -y -loglevel error -f concat -safe 0 -i list.txt -c:v libx264 -preset ultrafast -crf 22 -c:a aac -ar 44100 -pix_fmt yuv420p -movflags +faststart ./output/pwhatextended.mp4
 
-# Post-Execution Cleanup
+# Clean up temp files
 rm -f *.mp4 *.ppm list.txt
 }
 }
