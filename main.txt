@@ -3,7 +3,7 @@
 let bannedusers = ['notsobot9555', 'brackydonotsuspend', 'alphabet0204newaccount', 'eissaaleissa', 'dcge2011fixed_08416','mpgarv','qrs0767_56497'];
 bannedusers.includes(user)}}
 {if:{get:banned}|=|true|then:you can't use this tag|else:
-{set:tempoon|{lower:{or:{arg:2}|true}}}
+{set:tempoon|{lower:{or:{arg:2}|false}}}
 {set:tp1|{if:{get:tempoon}|=|true|then::tempo=1.059|else:}}
 {set:tp2|{if:{get:tempoon}|=|true|then::tempo=0.890|else:}}
 {set:tp3|{if:{get:tempoon}|=|true|then::tempo=2^(2/12)|else:}}
