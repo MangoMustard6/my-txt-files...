@@ -14,13 +14,14 @@ echo "${choices[$RANDOM % ${#choices[@]}]}"
 mkdir -p ./displacemaps
 curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov"
 vidlen="{get:videolen}"
-s="{or:{arg:0}|1.85}"
-e="{or:{arg:1}|0.85}"
+s="{or:{arg:0}|0.0}"
+e="{or:{arg:1}|0.5}"
 target_len="{or:{arg:3}|5}"
-t=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", e}')
-t2=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", (e/2)}')
-t3=$(awk -v s="$s" -v e="$e" 'BEGIN{ printf "%.4f", s+e}')
-t5=$(awk -v s="$s" -v target_len="$target_len" 'BEGIN{ printf "%.4f", s+target_len}')
+
+t=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", (e > vidlen ? vidlen : e)}')
+t2=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", (e/2 > vidlen ? vidlen/2 : e/2)}')
+t3=$(awk -v s="$s" -v e="$e" -v vidlen="$vidlen" 'BEGIN{ printf "%.4f", (s+e > vidlen ? vidlen : s+e)}')
+t5=$(awk -v s="$s" -v target_len="$target_len" -v vidlen="$vidlen" 'BEGIN{ printf "%.4f", (s+target_len > vidlen ? vidlen : s+target_len)}')
 
 is_flag="{lower:{or:{arg:2}|false}}"
 if [ "$is_flag" = "true" ]; then
@@ -89,4 +90,4 @@ concat_files="1.avi"
 for i in {2..28}; do
     concat_files="${concat_files}${p}${i}.avi"
 done
-ffmpeg -i "concat:$concat_files" -pix_fmt yuv420p -c:v libx264 -preset fast -c:a aac ./pwhatextended.mp4}}{sh:{get:code}}}
+ffmpeg -y -i "concat:$concat_files" -pix_fmt yuv420p -c:v libx264 -preset fast -c:a aac ./pwhatextended.mp4}}{sh:{get:code}}}
