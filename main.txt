@@ -4,15 +4,6 @@ ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0"
 }}{eval:{set:banned|{js:let user = discord.user.username;
 let bannedusers = ['notsobot9555', 'brackydonotsuspend', 'alphabet0204newaccount', 'eissaaleissa', 'dcge2011fixed_08416','mpgarv','qrs0767_56497'];
 bannedusers.includes(user)}}}{if:{get:banned}|=|true|then:you can't use this tag|else:{set:code|load {iv}
-choice=$((RANDOM % 3))
-if [ $choice -eq 0 ]; then
-    echo "use .t sync+ or .t sync+ alt for the video audio to be synced"
-elif [ $choice -eq 1 ]; then
-    echo "chicken nuggets"
-else
-    echo "test tag used by {mention}"
-fi
-
 mkdir -p ./displacemaps
 curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov"
 vidlen="{get:videolen}"
