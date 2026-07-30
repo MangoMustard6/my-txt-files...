@@ -11,7 +11,7 @@ choices=(
 )
 echo "${choices[$RANDOM % ${#choices[@]}]}"
 
-mkdir -p ./displacemaps ./output
+mkdir -p ./displacemaps
 curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov"
 vidlen="{get:videolen}"
 s="{or:{arg:0}|1.85}"
@@ -20,6 +20,76 @@ target_len="{or:{arg:3}|5}"
 t=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", e}')
 t2=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", (e/2)}')
 t3=$(awk -v s="$s" -v e="$e" 'BEGIN{ printf "%.4f", s+e}')
+t5=$(awk -v s="$s" -v target_len="$target_len" 'BEGIN{ printf "%.4f", s+target_len}')
+
+is_flag="{lower:{or:{arg:2}|false}}"
+if [ "$is_flag" = "true" ]; then
+    tp1="tempo=1.059:"
+    tp2="tempo=0.890:"
+    tp3="tempo=2^(2/12):"
+    tp4="tempo=0.94:"
+    tp5="tempo=2^(-4/12):"
+    tp6="tempo=2:"
+    tp7="tempo=2.1189:"
+    tp8="tempo=0.89:"
+else
+    tp1=""
+    tp2=""
+    tp3=""
+    tp4=""
+    tp5=""
+    tp6=""
+    tp7=""
+    tp8=""
+fi
+
+magick hald:4 -modulate 100,100,130 hslhue_54.ppm
+magick hald:4 -modulate 100,100,270 hslhue_-54.ppm
+magick hald:4 -modulate 100,100,0 hslhue_180.ppm
+magick hald:4 -modulate 100,100,112 hslhue_22.ppm
+magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm
+
+ffmpeg -i "$FILE_1" -vf scale=640:360,setsar=1:1 -ss "$s" -to "$t3" -c:v ffv1 -c:a pcm_s16le 0.avi
+ffmpeg -i "$FILE_1" -vf scale=640:360,setsar=1:1 -ss "$s" -to "$t5" -c:v ffv1 -c:a pcm_s16le 0_long.avi
+
+w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 0.avi)
+h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.avi)
+
+ffmpeg -i 0.avi -t "$t" -c:v ffv1 -c:a pcm_s16le 1.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):\${tp1}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 2.avi
+ffmpeg -i 0.avi -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-2/12):\${tp2}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -map "[v]" -map 0:a -pix_fmt yuv420p -t "$t" -c:v ffv1 -c:a pcm_s16le 3.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):\${tp1}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 4.avi
+ffmpeg -i 0.avi -t "$t2" -c:v ffv1 -c:a pcm_s16le 5.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_22.ppm,[in]haldclut",hflip,format=yuv420p -af "rubberband=pitch=2^(2/12):\${tp3}window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 6.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):\${tp1}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 7.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_108_30.ppm,[in]haldclut",format=yuv420p,format=yuv444p,scale=640:640,"geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))'",scale="$w:$h",setsar=1:1,format=yuv420p -af "rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 8.avi
+ffmpeg -i 0.avi -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-2/12):\${tp2}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -map "[v]" -map 0:a -pix_fmt yuv420p -t "$t2" -c:v ffv1 -c:a pcm_s16le 9.avi
+ffmpeg -i 0.avi -vf swapuv -t "$t2" -c:v ffv1 -c:a pcm_s16le 10.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):\${tp1}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 11.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_108_30.ppm,[in]haldclut",format=yuv420p,format=yuv444p,scale=640:640,"geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))'",scale="$w:$h",setsar=1:1,format=yuv420p -af "rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 12.avi
+ffmpeg -i 0.avi -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-2/12):\${tp2}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -map "[v]" -map 0:a -pix_fmt yuv420p -t "$t2" -c:v ffv1 -c:a pcm_s16le 13.avi
+ffmpeg -i 0.avi -vf swapuv -t "$t2" -c:v ffv1 -c:a pcm_s16le 14.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_-54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(-1/12):\${tp4}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 15.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):\${tp1}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 16.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_180.ppm,[in]haldclut",format=yuv420p,negate,format=yuv420p -af "rubberband=pitch=2^(-4/12):\${tp5}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 17.avi
+ffmpeg -i 0.avi -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-2/12):\${tp2}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -map "[v]" -map 0:a -pix_fmt yuv420p -t "$t2" -c:v ffv1 -c:a pcm_s16le 18.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_-54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(-1/12):\${tp4}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 19.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):\${tp1}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 20.avi
+ffmpeg -i 0.avi -t "$t2" -c:v ffv1 -c:a pcm_s16le 21.avi
+ffmpeg -i 0.avi -vf negate,hflip -af "rubberband=pitch=2^(12/12):\${tp6}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 22.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):\${tp1}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 23.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p,negate,hflip,format=yuv420p -af "rubberband=pitch=2^(13/12):\${tp7}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 24.avi
+ffmpeg -i 0.avi -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-2/12):\${tp8}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -map "[v]" -map 0:a -pix_fmt yuv420p -t "$t2" -c:v ffv1 -c:a pcm_s16le 25.avi
+ffmpeg -i 0.avi -vf swapuv -t "$t2" -c:v ffv1 -c:a pcm_s16le 26.avi
+ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -af "rubberband=pitch=2^(1/12):\${tp1}window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t2" -c:v ffv1 -c:a pcm_s16le 27.avi
+ffmpeg -stream_loop -1 -i 0_long.avi -vf "movie=hslhue_108_30.ppm,[in]haldclut",format=yuv420p,format=yuv444p,scale=640:640,"geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))'",scale="$w:$h",setsar=1:1,format=yuv420p -af "aloop=loop=-1:size=2e9,rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$target_len" -c:v ffv1 -c:a pcm_s16le 28.avi
+
+p=$(printf '\174')
+concat_files="1.avi"
+for i in {2..28}; do
+    concat_files="${concat_files}${p}${i}.avi"
+done
+ffmpeg -i "concat:$concat_files" -pix_fmt yuv420p -c:v libx264 -preset fast -c:a aac ./pwhatextended.mp4}} {sh:{ts:console.log(`{get:code}`)}}}t3=$(awk -v s="$s" -v e="$e" 'BEGIN{ printf "%.4f", s+e}')
 t5=$(awk -v s="$s" -v target_len="$target_len" 'BEGIN{ printf "%.4f", s+target_len}')
 
 is_flag="{lower:{or:{arg:2}|false}}"
