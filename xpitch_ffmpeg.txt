@@ -1,13 +1,12 @@
 {bash:
 set -e
 
-# Default start time to 0 if not provided
 START="${1:-0}"
 INPUT="input.mp4"
 OUT="output.mp4"
 
-# Download the attached/linked video from NotSoBot's media context
-curl -sL "$URL" -o "$INPUT"
+# Download video using TagScript's attachment/URL variable
+curl -sL "{url}" -o "$INPUT"
 
 ffmpeg -y -i "$INPUT" -filter_complex "
 [0:v]trim=start=${START}:duration=0.2,setpts=PTS-STARTPTS[bv];
@@ -40,5 +39,8 @@ ffmpeg -y -i "$INPUT" -filter_complex "
 [bv23]null[tv23];                                 [ba23]rubberband=pitch=0.667,atrim=0:0.1,asetpts=PTS-STARTPTS[ta23];
 
 [tv1][ta1][tv2][ta2][tv3][ta3][tv4][ta4][tv5][ta5][tv6][ta6][tv7][ta7][tv8][ta8][tv9][ta9][tv10][ta10][tv11][ta11][tv12][ta12][tv13][ta13][tv14][ta14][tv15][ta15][tv16][ta16][tv17][ta17][tv18][ta18][tv19][ta19][tv20][ta20][tv21][ta21][tv22][ta22][tv23][ta23]concat=n=23:v=1:a=1[outv][outa]
-" -map "[outv]" -map "[outa]" "$OUT"
+" -map "[outv]" -map "[outa]" "$OUT" > /dev/null 2>&1
+
+# NotSoBot requires the path to the final output file printed at the end
+echo "$OUT"
 }
