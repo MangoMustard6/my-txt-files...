@@ -1,0 +1,44 @@
+{bash:
+set -e
+
+# Default start time to 0 if not provided
+START="${1:-0}"
+INPUT="input.mp4"
+OUT="output.mp4"
+
+# Download the attached/linked video from NotSoBot's media context
+curl -sL "$URL" -o "$INPUT"
+
+ffmpeg -y -i "$INPUT" -filter_complex "
+[0:v]trim=start=${START}:duration=0.2,setpts=PTS-STARTPTS[bv];
+[0:a]atrim=start=${START}:duration=0.2,asetpts=PTS-STARTPTS[ba];
+[bv]split=23[bv1][bv2][bv3][bv4][bv5][bv6][bv7][bv8][bv9][bv10][bv11][bv12][bv13][bv14][bv15][bv16][bv17][bv18][bv19][bv20][bv21][bv22][bv23];
+[ba]asplit=23[ba1][ba2][ba3][ba4][ba5][ba6][ba7][ba8][ba9][ba10][ba11][ba12][ba13][ba14][ba15][ba16][ba17][ba18][ba19][ba20][ba21][ba22][ba23];
+
+[bv1]null[tv1];                                   [ba1]rubberband=pitch=0.63[ta1];
+[bv2]hflip,trim=0:0.1,setpts=PTS-STARTPTS[tv2];    [ba2]rubberband=pitch=0.841,atrim=0:0.1,asetpts=PTS-STARTPTS[ta2];
+[bv3]null[tv3];                                   [ba3]rubberband=pitch=0.63,atrim=0:0.1,asetpts=PTS-STARTPTS[ta3];
+[bv4]hflip[tv4];                                   [ba4]rubberband=pitch=0.944[ta4];
+[bv5]null[tv5];                                   [ba5]rubberband=pitch=0.841,atrim=0:0.1,asetpts=PTS-STARTPTS[ta5];
+[bv6]hflip,trim=0:0.1,setpts=PTS-STARTPTS[tv6];    [ba6]rubberband=pitch=0.75,atrim=0:0.1,asetpts=PTS-STARTPTS[ta6];
+[bv7]null[tv7];                                   [ba7]rubberband=pitch=0.667[ta7];
+[bv8]hflip,trim=0:0.1,setpts=PTS-STARTPTS[tv8];    [ba8]rubberband=pitch=0.841,atrim=0:0.1,asetpts=PTS-STARTPTS[ta8];
+[bv9]null[tv9];                                   [ba9]rubberband=pitch=0.667,atrim=0:0.1,asetpts=PTS-STARTPTS[ta9];
+[bv10]hflip,trim=0:0.1,setpts=PTS-STARTPTS[tv10];  [ba10]rubberband=pitch=0.841,atrim=0:0.1,asetpts=PTS-STARTPTS[ta10];
+[bv11]null[tv11];                                 [ba11]rubberband=pitch=0.667,atrim=0:0.1,asetpts=PTS-STARTPTS[ta11];
+[bv12]hflip[tv12];                                 [ba12]anull[ta12];
+[bv13]null[tv13];                                 [ba13]rubberband=pitch=0.5612[ta13];
+[bv14]hflip,trim=0:0.1,setpts=PTS-STARTPTS[tv14];  [ba14]rubberband=pitch=0.944,atrim=0:0.1,asetpts=PTS-STARTPTS[ta14];
+[bv15]null[tv15];                                 [ba15]rubberband=pitch=0.63,atrim=0:0.1,asetpts=PTS-STARTPTS[ta15];
+[bv16]hflip[tv16];                                 [ba16]rubberband=pitch=0.841[ta16];
+[bv17]null[tv17];                                 [ba17]rubberband=pitch=0.75[ta17];
+[bv18]hflip[tv18];                                 [ba18]rubberband=pitch=0.667[ta18];
+[bv19]null[tv19];                                 [ba19]rubberband=pitch=0.841[ta19];
+[bv20]hflip,trim=0:0.1,setpts=PTS-STARTPTS[tv20];  [ba20]rubberband=pitch=0.667,atrim=0:0.1,asetpts=PTS-STARTPTS[ta20];
+[bv21]null[tv21];                                 [ba21]rubberband=pitch=0.75,atrim=0:0.1,asetpts=PTS-STARTPTS[ta21];
+[bv22]hflip,trim=0:0.1,setpts=PTS-STARTPTS[tv22];  [ba22]rubberband=pitch=0.5612,atrim=0:0.1,asetpts=PTS-STARTPTS[ta22];
+[bv23]null[tv23];                                 [ba23]rubberband=pitch=0.667,atrim=0:0.1,asetpts=PTS-STARTPTS[ta23];
+
+[tv1][ta1][tv2][ta2][tv3][ta3][tv4][ta4][tv5][ta5][tv6][ta6][tv7][ta7][tv8][ta8][tv9][ta9][tv10][ta10][tv11][ta11][tv12][ta12][tv13][ta13][tv14][ta14][tv15][ta15][tv16][ta16][tv17][ta17][tv18][ta18][tv19][ta19][tv20][ta20][tv21][ta21][tv22][ta22][tv23][ta23]concat=n=23:v=1:a=1[outv][outa]
+" -map "[outv]" -map "[outa]" "$OUT"
+}
