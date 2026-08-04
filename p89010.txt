@@ -2,7 +2,7 @@
 mkdir -p ./displacemaps ./output
 curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov"
 
-# Use pure shell arguments; default to 1.875 start / 0.46875 duration
+# Pure Bash variables
 s="${1:-1.875}"
 t="${2:-0.46875}"
 
@@ -63,4 +63,4 @@ sed -i "s/OUT_H/$hh/g" filtergraph.txt
 
 # Run the entire payload as a single command
 ffmpeg -y -stream_loop -1 -ss "$s" -t "$t" -i "$FILE_1" -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex_script filtergraph.txt -map "[outv]" -map "[acat]" -c:v ffv1 -c:a pcm_s16le ./output/p1280.mp4
-}{sh:{js:console.log(`{get:code}`)}}
+}{sh:{get:code}}
