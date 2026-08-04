@@ -7,8 +7,8 @@ vidlen=$(ffprobe -i "$FILE_1" -show_entries format=duration -v quiet -of csv="p=
 s={or:{arg:0}|{math:0.4625*4}}
 e=0.4625
 
-t=$(awk -v vidlen="$vidlen" 'BEGIN{ printf "%.4f", {or:{arg:1}|0.4625}}')
-t3=$(awk -v vidlen="$vidlen" 'BEGIN{ printf "%.4f", ({or:{arg:0}|{math:0.4625*4}})+({or:{arg:1}|0.4625)}')
+t=$(awk -v vidlen="$vidlen" 'BEGIN{ printf "%.4f", {or:{arg:1}|0.4625} }')
+t3=$(awk -v vidlen="$vidlen" 'BEGIN{ printf "%.4f", ({or:{arg:0}|{math:0.4625*4}})+({or:{arg:1}|0.4625}) }')
 
 magick hald:6 -colorspace yuv -fx "angle=180*pi/180; channel(u,.5+(u.g-.5)*cos(angle)-(u.b-.5)*sin(angle),.5+(u.g-.5)*sin(angle)+(u.b-.5)*cos(angle))" -colorspace srgb -modulate 100,100,1200 idk2.ppm
 magick hald:6 -colorspace yuv -fx "angle=180*pi/180; channel(u,.5+(u.g-.5)*cos(angle)-(u.b-.5)*sin(angle),.5+(u.g-.5)*sin(angle)+(u.b-.5)*cos(angle))" -colorspace srgb -modulate 100,100,1300 idk.ppm
