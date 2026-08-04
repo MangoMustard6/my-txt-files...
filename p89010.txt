@@ -2,12 +2,9 @@
 mkdir -p ./displacemaps ./output
 curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov"
 
-vidlen=$(ffprobe -i "$FILE_1" -show_entries format=duration -v quiet -of csv="p=0")
-
-# Compute time offsets strictly outside of inline awk statements
-s={or:{arg:0}|1.875}
-t={or:{arg:1}|0.46875}
-t3=$(awk -v s="$s" -v t="$t" 'BEGIN {printf "%.4f", s + t}')
+# Use pure shell arguments; default to 1.875 start / 0.46875 duration
+s="${1:-1.875}"
+t="${2:-0.46875}"
 
 magick hald:6 -colorspace yuv -fx "angle=180*pi/180; channel(u,.5+(u.g-.5)*cos(angle)-(u.b-.5)*sin(angle),.5+(u.g-.5)*sin(angle)+(u.b-.5)*cos(angle))" -colorspace srgb -modulate 100,100,1200 idk2.ppm
 magick hald:6 -colorspace yuv -fx "angle=180*pi/180; channel(u,.5+(u.g-.5)*cos(angle)-(u.b-.5)*sin(angle),.5+(u.g-.5)*sin(angle)+(u.b-.5)*cos(angle))" -colorspace srgb -modulate 100,100,1300 idk.ppm
@@ -18,30 +15,52 @@ magick hald:4 -modulate 100,200,125 hslhue_45_200.ppm
 magick hald:4 -modulate 100,100,112 hslhue_21_6.ppm
 magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm
 
-ffmpeg -y -stream_loop -1 -i "$FILE_1" -vf scale=640:360,setsar=1:1 -ss "$s" -to "$t3" -c:v ffv1 -c:a pcm_s16le 0.avi
-
-w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 0.avi)
-h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.avi)
+# Extract target dimensions from the source file
 ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 "$FILE_1")
 hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 "$FILE_1")
 
-ffmpeg -y -i 0.avi -vf fps=29.97 -c:v ffv1 -c:a pcm_s16le modfps.avi
+# Write the entire complex filtergraph into a text file to prevent syntax crashing
+cat << 'EOF' > filtergraph.txt
+[0:v]scale=640:360,setsar=1:1,fps=29.97,trim=0:DUR,setpts=PTS-STARTPTS,split=16[v1][v2][v3][v4][v5][v6][v7][v8][v9][v10][v11][v12][v13][v14][v15][v16];
+[0:a]atrim=0:DUR,asetpts=PTS-STARTPTS,asplit=16[a1][a2][a3][a4][a5][a6][a7][a8][a9][a10][a11][a12][a13][a14][a15][a16];
 
-ffmpeg -y -i modfps.avi -t "$t" -c:v ffv1 -c:a pcm_s16le 1.avi
-ffmpeg -y -i modfps.avi -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=idk.ppm[h];[0][h]haldclut,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -map "[v]" -map 0:a -pix_fmt yuv420p -t "$t" -c:v ffv1 -c:a pcm_s16le 2.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 3.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_45_200.ppm,[in]haldclut,format=yuv444p,rotate=t*45*PI/180/0.4625,geq=p((W/2)+(X-(W/2))/lerp(1\,2\,T/0.4625)\,(H/2)+(Y-(H/2))/lerp(1\,2\,T/0.4625)),scale=$w:$h,crop=$w:$h,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 4.avi
-ffmpeg -y -i modfps.avi -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=idk2.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-1/12):window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency" -map "[v]" -map 0:a -pix_fmt yuv420p -t "$t" -c:v ffv1 -c:a pcm_s16le 5.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_-54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(-1/12):window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 6.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 7.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_45_200.ppm,[in]haldclut,format=yuv444p,rotate=t*45*PI/180/0.4625,geq=p((W/2)+(X-(W/2))/lerp(1\,2\,T/0.4625)\,(H/2)+(Y-(H/2))/lerp(1\,2\,T/0.4625)),scale=$w:$h,crop=$w:$h,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 8.avi
-ffmpeg -y -i modfps.avi -t "$t" -c:v ffv1 -c:a pcm_s16le 9.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_21_6.ppm,[in]haldclut,hflip,format=yuv420p" -af "rubberband=pitch=2^(2/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 10.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 11.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_108_30.ppm,[in]haldclut,hflip,format=yuv420p" -af "rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 12.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_-54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(-1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 13.avi
-ffmpeg -y -i modfps.avi -vf hflip -t "$t" -c:v ffv1 -c:a pcm_s16le 14.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 15.avi
-ffmpeg -y -i modfps.avi -vf "movie=hslhue_108_30.ppm,[in]haldclut,hflip,format=yuv420p" -af "rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -t "$t" -c:v ffv1 -c:a pcm_s16le 16.avi
+movie=idk.ppm[h2];[v2][h2]haldclut,crop=iw/2:ih:0:0,split[l2][tmp2];[tmp2]hflip[r2];[l2][r2]hstack,format=yuv420p,format=bgr32[00_2];[1:v]scale=640:360,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x2];nullsrc=s=640x360,geq=r=128:g=128:b=128,format=bgr32[y2];[00_2][x2][y2]displace=edge=wrap,format=yuv420p[out_v2];
+movie=hslhue_54.ppm[h3];[v3][h3]haldclut,format=yuv420p[out_v3];
+movie=hslhue_45_200.ppm[h4];[v4][h4]haldclut,format=yuv444p,rotate=t*45*PI/180/DUR,geq=p((W/2)+(X-(W/2))/lerp(1\,2\,T/DUR)\,(H/2)+(Y-(H/2))/lerp(1\,2\,T/DUR)),scale=640:360,crop=640:360,format=yuv420p[out_v4];
+movie=idk2.ppm[h5];[v5][h5]haldclut,hflip,crop=iw/2:ih:0:0,split[l5][tmp5];[tmp5]hflip[r5];[l5][r5]hstack,format=yuv420p,format=bgr32[00_5];[1:v]scale=640:360,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x5];nullsrc=s=640x360,geq=r=128:g=128:b=128,format=bgr32[y5];[00_5][x5][y5]displace=edge=wrap,format=yuv420p[out_v5];
+movie=hslhue_-54.ppm[h6];[v6][h6]haldclut,format=yuv420p[out_v6];
+movie=hslhue_54.ppm[h7];[v7][h7]haldclut,format=yuv420p[out_v7];
+movie=hslhue_45_200.ppm[h8];[v8][h8]haldclut,format=yuv444p,rotate=t*45*PI/180/DUR,geq=p((W/2)+(X-(W/2))/lerp(1\,2\,T/DUR)\,(H/2)+(Y-(H/2))/lerp(1\,2\,T/DUR)),scale=640:360,crop=640:360,format=yuv420p[out_v8];
+movie=hslhue_21_6.ppm[h10];[v10][h10]haldclut,hflip,format=yuv420p[out_v10];
+movie=hslhue_54.ppm[h11];[v11][h11]haldclut,format=yuv420p[out_v11];
+movie=hslhue_108_30.ppm[h12];[v12][h12]haldclut,hflip,format=yuv420p[out_v12];
+movie=hslhue_-54.ppm[h13];[v13][h13]haldclut,format=yuv420p[out_v13];
+[v14]hflip,format=yuv420p[out_v14];
+movie=hslhue_54.ppm[h15];[v15][h15]haldclut,format=yuv420p[out_v15];
+movie=hslhue_108_30.ppm[h16];[v16][h16]haldclut,hflip,format=yuv420p[out_v16];
 
-ffmpeg -y -i "concat:1.avi|2.avi|3.avi|4.avi|5.avi|6.avi|7.avi|8.avi|9.avi|10.avi|11.avi|12.avi|13.avi|14.avi|15.avi|16.avi" -vf scale=$ww:$hh,setsar=1 ./output/p1280.mp4}{sh:{js:console.log(`{get:code}`)}}
+[a3]rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a3];
+[a4]rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a4];
+[a5]rubberband=pitch=2^(-1/12):window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency[out_a5];
+[a6]rubberband=pitch=2^(-1/12):window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency[out_a6];
+[a7]rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a7];
+[a8]rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a8];
+[a10]rubberband=pitch=2^(2/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a10];
+[a11]rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a11];
+[a12]rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a12];
+[a13]rubberband=pitch=2^(-1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a13];
+[a15]rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a15];
+[a16]rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency[out_a16];
+
+[v1][out_v2][out_v3][out_v4][out_v5][out_v6][out_v7][out_v8][v9][out_v10][out_v11][out_v12][out_v13][out_v14][out_v15][out_v16]concat=n=16:v=1:a=0,scale=OUT_W:OUT_H,setsar=1,format=yuv420p[outv];
+[a1][a2][out_a3][out_a4][out_a5][out_a6][out_a7][out_a8][a9][out_a10][out_a11][out_a12][out_a13][a14][out_a15][out_a16]concat=n=16:v=0:a=1[acat]
+EOF
+
+# Inject variables safely using sed
+sed -i "s/DUR/$t/g" filtergraph.txt
+sed -i "s/OUT_W/$ww/g" filtergraph.txt
+sed -i "s/OUT_H/$hh/g" filtergraph.txt
+
+# Run the entire payload as a single command
+ffmpeg -y -stream_loop -1 -ss "$s" -t "$t" -i "$FILE_1" -stream_loop -1 -i ./displacemaps/tvsimulator.mov -filter_complex_script filtergraph.txt -map "[outv]" -map "[acat]" -c:v ffv1 -c:a pcm_s16le ./output/p1280.mp4
+}{sh:{js:console.log(`{get:code}`)}}
