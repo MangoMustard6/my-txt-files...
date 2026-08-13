@@ -2,43 +2,38 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 
-// Fetch attachment URL safely
 const FILE_1 = process.env.FILE_1 || '{iv}';
-const args = ['{arg:0}', '{arg:1}', '{arg:2+}'];
 
-const power = parseInt(args[0], 10) || 1;
-const durationArg = args[1] && args[1] !== '' ? args[1] : '5';
-const extraArgs = args[2] && args[2] !== '{arg:2+}' ? args[2] : '';
+// Power & duration arguments
+const power = parseInt('{arg:0}', 10) || 1;
+const durationArg = '{arg:1}' && '{arg:1}' !== '{arg:1}' ? '{arg:1}' : '5';
 
-// Helper function to safely execute shell commands with quoted input
+// Capture args:2 directly
+let extraArgs = '{args:2}';
+if (extraArgs === '{args:2}' || !extraArgs.trim()) {
+  extraArgs = '';
+}
+
 const run = (cmd) => execSync(cmd, { stdio: 'pipe' }).toString().trim();
 
 try {
-  // Quoting "${FILE_1}" prevents shell & parameter splits!
-  const sr = run(`ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nokey=1:noprint_wrappers=1 "${FILE_1}"`);
-  const fr = run(`ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nokey=1:noprint_wrappers=1 "${FILE_1}"`);
-  const d  = run(`ffprobe -i "${FILE_1}" -show_entries format=duration -v quiet -of csv="p=0"`);
-  const w  = run(`ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 "${FILE_1}"`);
-  const h  = run(`ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 "${FILE_1}"`);
-  const fc = run(`ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nokey=1:noprint_wrappers=1 "${FILE_1}"`);
+  // 1. Initial trim
+  execSync(`ffmpeg -y -i "${FILE_1}" -vf "trim=end=${durationArg}" -af "atrim=end=${durationArg}" -c:v libx264 -c:a aac 1.mp4`);
 
-  // Step 1: Initial trim
-  execSync(`ffmpeg -y -i "${FILE_1}" -vf trim=end=${durationArg} -c:v libx264 -c:a aac -af atrim=end=${durationArg} 1.mp4`);
-
-  // Step 2: Render power loop
+  // 2. Loop using {args:2}
   for (let i = 2; i <= power + 1; i++) {
     const prev = i - 1;
     execSync(`ffmpeg -y -i ${prev}.mp4 ${extraArgs} -t ${durationArg} -preset ultrafast -crf 23 -pix_fmt yuv420p ${i}.mp4`);
   }
 
-  // Step 3: Concat list
+  // 3. Create concat list
   let listContent = '';
   for (let i = 2; i <= power + 1; i++) {
     listContent += `file '${i}.mp4'\n`;
   }
   fs.writeFileSync('list.txt', listContent);
 
-  // Step 4: Output
+  // 4. Output final file
   execSync(`ffmpeg -y -f concat -safe 0 -i list.txt -c:v libx264 -preset ultrafast -crf 23 -pix_fmt yuv420p -c:a aac ./output/ihtx.mp4`);
 } catch (err) {
   console.error(err.stderr ? err.stderr.toString() : err.message);
