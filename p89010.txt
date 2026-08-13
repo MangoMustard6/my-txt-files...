@@ -2,20 +2,27 @@
 const { execSync } = require('child_process');
 const fs = require('fs');
 
-const FILE_1 = process.env.FILE_1 || '{iv}';
+// Fetch and sanitize media URL
+let FILE_1 = process.env.FILE_1 || '{iv}';
+FILE_1 = FILE_1.trim().replace(/^<|>$/g, ''); // Strip Discord link brackets if present
 
-// Defaults derived from 0.46875
+// Validation guard to prevent Malformed URL crashes
+if (!FILE_1 || FILE_1 === '{iv}' || !FILE_1.startsWith('http')) {
+  console.log('Error: Please reply to or attach a valid video file to use this command.');
+  return;
+}
+
+// Default start and end parameters
 const DEFAULT_S = 0.46875 * 4; // 1.875
 const DEFAULT_E = 0.46875 / 1; // 0.46875
 
-// Parse optional start ({arg:0}) and end ({arg:1}) times
 const arg0 = '{arg:0}';
 const arg1 = '{arg:1}';
 
 const s = (arg0 && arg0 !== '{arg:0}') ? parseFloat(arg0) : DEFAULT_S;
 const e = (arg1 && arg1 !== '{arg:1}') ? parseFloat(arg1) : DEFAULT_E;
 
-// Calculate t based on start and end points
+// Calculate segment chunk duration
 const t = (e - s) / 16;
 
 const run = (cmd) => execSync(cmd, { stdio: 'pipe' }).toString().trim();
@@ -37,11 +44,11 @@ try {
   execSync('magick hald:4 -modulate 100,100,112 hslhue_21_6.ppm');
   execSync('magick hald:4 -modulate 100,200,125 hslhue_45_200.ppm');
 
-  // 3. Probing original dimensions
+  // 3. Probe original dimensions safely
   const ww = run(`ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 "${FILE_1}"`);
   const hh = run(`ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 "${FILE_1}"`);
 
-  // Calculate segment start timestamps based on s and t
+  // Calculate timestamps for 16 chunks
   const dur = Array.from({ length: 16 }, (_, i) => s + (t * i));
   const w = 640;
   const h = 360;
