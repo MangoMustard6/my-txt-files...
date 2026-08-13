@@ -1,78 +1,87 @@
-{set:code|load {iv}
-mkdir -p ./displacemaps ./output
-curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov"
+{js:
+const { execSync } = require('child_process');
+const fs = require('fs');
 
-s=$1
-if [ -z "$s" ]; then s="0"; fi
+const FILE_1 = process.env.FILE_1 || '{iv}';
 
-e=$2
-if [ -z "$e" ]; then e="7.5"; fi
+// Defaults derived from 0.46875
+const DEFAULT_S = 0.46875 * 4; // 1.875
+const DEFAULT_E = 0.46875 / 1; // 0.46875
 
-magick hald:6 -colorspace yuv -fx "angle=180*pi/180; channel(u,.5+(u.g-.5)*cos(angle)-(u.b-.5)*sin(angle),.5+(u.g-.5)*sin(angle)+(u.b-.5)*cos(angle))" -colorspace srgb -modulate 100,100,1200 idk2.ppm
-magick hald:6 -colorspace yuv -fx "angle=180*pi/180; channel(u,.5+(u.g-.5)*cos(angle)-(u.b-.5)*sin(angle),.5+(u.g-.5)*sin(angle)+(u.b-.5)*cos(angle))" -colorspace srgb -modulate 100,100,1300 idk.ppm
-magick hald:4 -modulate 100,100,200 hslhue_180.ppm
-magick hald:4 -modulate 100,100,130 hslhue_54.ppm
-magick hald:4 -modulate 100,100,70 hslhue_-54.ppm
-magick hald:4 -modulate 100,200,125 hslhue_45_200.ppm
-magick hald:4 -modulate 100,100,112 hslhue_21_6.ppm
-magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm
+// Parse optional start ({arg:0}) and end ({arg:1}) times
+const arg0 = '{arg:0}';
+const arg1 = '{arg:1}';
 
-ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 "$FILE_1")
-hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 "$FILE_1")
+const s = (arg0 && arg0 !== '{arg:0}') ? parseFloat(arg0) : DEFAULT_S;
+const e = (arg1 && arg1 !== '{arg:1}') ? parseFloat(arg1) : DEFAULT_E;
 
-# Calculate chunk duration $t based on custom start ($s), end ($e), and 16 total chunks
-t=$(awk -v s="$s" -v e="$e" 'BEGIN {print (e - s) / 16}')
+// Calculate t based on start and end points
+const t = (e - s) / 16;
 
-w=640
-h=360
+const run = (cmd) => execSync(cmd, { stdio: 'pipe' }).toString().trim();
 
-# Generate 16 independent looped segments using custom -ss and calculated chunk duration -t
-ffmpeg -y -stream_loop -1 -ss "$s" -fflags +genpts -i "$FILE_1" -t "$t" -vf scale=640:360,setsar=1:1,fps=29.97 -c:v ffv1 -c:a pcm_s16le 1.avi
+try {
+  // 1. Setup directories and displacement map
+  execSync('mkdir -p ./displacemaps ./output');
+  if (!fs.existsSync('./displacemaps/tvsimulator.mov')) {
+    execSync('curl -s "https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov" -o "./displacemaps/tvsimulator.mov"');
+  }
 
-dur1=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t}')
-dur2=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 2}')
-dur3=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 3}')
-dur4=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 4}')
-dur5=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 5}')
-dur6=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 6}')
-dur7=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 7}')
-dur8=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 8}')
-dur9=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 9}')
-dur10=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 10}')
-dur11=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 11}')
-dur12=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 12}')
-dur13=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 13}')
-dur14=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 14}')
-dur15=$(awk -v s="$s" -v t="$t" 'BEGIN {print s + t * 15}')
+  // 2. Generate Hald CLUT PPM files with ImageMagick
+  execSync('magick hald:6 -colorspace yuv -fx "angle=180*pi/180; channel(u,.5+(u.g-.5)*cos(angle)-(u.b-.5)*sin(angle),.5+(u.g-.5)*sin(angle)+(u.b-.5)*cos(angle))" -colorspace srgb -modulate 100,100,1200 idk2.ppm');
+  execSync('magick hald:6 -colorspace yuv -fx "angle=180*pi/180; channel(u,.5+(u.g-.5)*cos(angle)-(u.b-.5)*sin(angle),.5+(u.g-.5)*sin(angle)+(u.b-.5)*cos(angle))" -colorspace srgb -modulate 100,100,1300 idk.ppm');
+  execSync('magick hald:4 -modulate 100,100,200 hslhue_180.ppm');
+  execSync('magick hald:4 -modulate 100,100,130 hslhue_54.ppm');
+  execSync('magick hald:4 -modulate 100,100,70 hslhue_-54.ppm');
+  execSync('magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm');
+  execSync('magick hald:4 -modulate 100,100,112 hslhue_21_6.ppm');
+  execSync('magick hald:4 -modulate 100,200,125 hslhue_45_200.ppm');
 
-ffmpeg -y -stream_loop -1 -ss "$dur1" -fflags +genpts -i "$FILE_1" -t "$t" -fps_mode cfr -r 29.97 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=idk.ppm[h];[0:v]scale=640:360,setsar=1:1[v0];[v0][h]haldclut,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1:v]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -map "[v]" -map 0:a -pix_fmt yuv420p -t "$t" -c:v ffv1 -c:a pcm_s16le 2.avi
+  // 3. Probing original dimensions
+  const ww = run(`ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 "${FILE_1}"`);
+  const hh = run(`ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 "${FILE_1}"`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur2" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 3.avi
+  // Calculate segment start timestamps based on s and t
+  const dur = Array.from({ length: 16 }, (_, i) => s + (t * i));
+  const w = 640;
+  const h = 360;
 
-ffmpeg -y -stream_loop -1 -ss "$dur3" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_45_200.ppm,[in]haldclut,format=yuv444p,rotate=t*45*PI/180/$t,geq=p((W/2)+(X-(W/2))/lerp(1\,2\,T/$t)\,(H/2)+(Y-(H/2))/lerp(1\,2\,T/$t)),scale=$w:$h,crop=$w:$h,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 4.avi
+  // 4. Render 16 sub-chunks
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[0]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf scale=640:360,setsar=1:1,fps=29.97 -c:v ffv1 -c:a pcm_s16le 1.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur4" -fflags +genpts -i "$FILE_1" -t "$t" -fps_mode cfr -r 29.97 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=idk2.ppm[h];[0:v]scale=640:360,setsar=1:1[v0];[v0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1:v]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-1/12):window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency" -map "[v]" -map 0:a -pix_fmt yuv420p -t "$t" -c:v ffv1 -c:a pcm_s16le 5.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[1]} -fflags +genpts -i "${FILE_1}" -t ${t} -fps_mode cfr -r 29.97 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=idk.ppm[h];[0:v]scale=640:360,setsar=1:1[v0];[v0][h]haldclut,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1:v]crop=iw:ih/1:0:0,scale=${w}:${h},eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=${w}:${h},format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -map "[v]" -map 0:a -pix_fmt yuv420p -t ${t} -c:v ffv1 -c:a pcm_s16le 2.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur5" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_-54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(-1/12):window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 6.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[2]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 3.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur6" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 7.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[3]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_45_200.ppm,[in]haldclut,format=yuv444p,rotate=t*45*PI/180/${t},geq=p((W/2)+(X-(W/2))/lerp(1\\,2\\,T/${t})\\,(H/2)+(Y-(H/2))/lerp(1\\,2\\,T/${t})),scale=${w}:${h},crop=${w}:${h},format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 4.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur7" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_45_200.ppm,[in]haldclut,format=yuv444p,rotate=t*45*PI/180/$t,geq=p((W/2)+(X-(W/2))/lerp(1\,2\,T/$t)\,(H/2)+(Y-(H/2))/lerp(1\,2\,T/$t)),scale=$w:$h,crop=$w:$h,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 8.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[4]} -fflags +genpts -i "${FILE_1}" -t ${t} -fps_mode cfr -r 29.97 -i ./displacemaps/tvsimulator.mov -filter_complex "movie=idk2.ppm[h];[0:v]scale=640:360,setsar=1:1[v0];[v0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1:v]crop=iw:ih/1:0:0,scale=${w}:${h},eq=contrast=0.375,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=${w}:${h},format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -af "rubberband=pitch=2^(-1/12):window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency" -map "[v]" -map 0:a -pix_fmt yuv420p -t ${t} -c:v ffv1 -c:a pcm_s16le 5.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur8" -fflags +genpts -i "$FILE_1" -t "$t" -vf scale=640:360,setsar=1:1,fps=29.97 -c:v ffv1 -c:a pcm_s16le 9.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[5]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_-54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(-1/12):window=short:transients=smooth:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 6.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur9" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_21_6.ppm,[in]haldclut,hflip,format=yuv420p" -af "rubberband=pitch=2^(2/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 10.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[6]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 7.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur10" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 11.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[7]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_45_200.ppm,[in]haldclut,format=yuv444p,rotate=t*45*PI/180/${t},geq=p((W/2)+(X-(W/2))/lerp(1\\,2\\,T/${t})\\,(H/2)+(Y-(H/2))/lerp(1\\,2\\,T/${t})),scale=${w}:${h},crop=${w}:${h},format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 8.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur11" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_108_30.ppm,[in]haldclut,hflip,format=yuv420p" -af "rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 12.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[8]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf scale=640:360,setsar=1:1,fps=29.97 -c:v ffv1 -c:a pcm_s16le 9.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur12" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_-54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(-1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 13.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[9]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_21_6.ppm,[in]haldclut,hflip,format=yuv420p" -af "rubberband=pitch=2^(2/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 10.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur13" -fflags +genpts -i "$FILE_1" -t "$t" -vf scale=640:360,setsar=1:1,fps=29.97,hflip -c:v ffv1 -c:a pcm_s16le 14.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[10]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 11.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur14" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 15.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[11]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_108_30.ppm,[in]haldclut,hflip,format=yuv420p" -af "rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 12.avi`);
 
-ffmpeg -y -stream_loop -1 -ss "$dur15" -fflags +genpts -i "$FILE_1" -t "$t" -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_108_30.ppm,[in]haldclut,hflip,format=yuv420p" -af "rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 16.avi
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[12]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_-54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(-1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 13.avi`);
 
-ffmpeg -y -i "concat:1.avi|2.avi|3.avi|4.avi|5.avi|6.avi|7.avi|8.avi|9.avi|10.avi|11.avi|12.avi|13.avi|14.avi|15.avi|16.avi" -vf scale=$ww:$hh,setsar=1 ./output/p1280.mp4}{sh:{get:code}}
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[13]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf scale=640:360,setsar=1:1,fps=29.97,hflip -c:v ffv1 -c:a pcm_s16le 14.avi`);
+
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[14]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -af "rubberband=pitch=2^(1/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 15.avi`);
+
+  execSync(`ffmpeg -y -stream_loop -1 -ss ${dur[15]} -fflags +genpts -i "${FILE_1}" -t ${t} -vf "scale=640:360,setsar=1:1,fps=29.97,movie=hslhue_108_30.ppm,[in]haldclut,hflip,format=yuv420p" -af "rubberband=pitch=2^(3/12):window=short:transients=mixed:detector=soft:channels=together:pitchq=consistency" -c:v ffv1 -c:a pcm_s16le 16.avi`);
+
+  // 5. Final Concat Output
+  execSync(`ffmpeg -y -i "concat:1.avi|2.avi|3.avi|4.avi|5.avi|6.avi|7.avi|8.avi|9.avi|10.avi|11.avi|12.avi|13.avi|14.avi|15.avi|16.avi" -vf scale=${ww}:${hh},setsar=1 ./output/p1280.mp4`);
+} catch (err) {
+  console.error(err.stderr ? err.stderr.toString() : err.message);
+}
+}
