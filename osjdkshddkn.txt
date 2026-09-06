@@ -1,0 +1,139 @@
+ {set:s|{unix}}
+{if:{arg:0}|=|usage|then:
+  {embedjson:{
+    "title": "Preview 1280 FFmpeg Extended (my version)",
+    "color": 16753920,
+    "author": {
+      "name": "This tag was originally supposed to have effects as .t p1280_but_better (Alias of tag `preview_1280_ffmpeg_extended_veg8_v2`), but I remade it with different effects and made it as my preview 1280."
+    },
+    "thumbnail": {
+      "url": "https://file.garden/akpXUy7cShbwSW4u/Untitled243_20260828124903.png"
+    },
+    "fields": [
+      {
+        "name": "Usage",
+        "value": "**Tag Usage**\n\n- arg:0 (s): Primary start timestamp in seconds (default: 1.85)\n- arg:1 (e): Base duration for standard segment cuts (default: 0.85)\n- arg:2 (target_len): Duration target for extended segment 0_long.avi (default: e / 4 = 0.2125)\n- arg:3 (use_alt_3avi): Toggle alternate geq filter for 3.avi (true/false, default: false)\n- arg:4 (custom_t2): Override duration for secondary clips (default: 0, uses e / 2)\n- arg:5 (custom_t4): Override duration for quaternary clips (default: 0, uses e / 4)\n\nyall barking so much I'll have to blacklist you from the tag",
+        "inline": false
+      }
+    ]
+  }}
+|else:
+  {set:banned|{js:
+    let user = discord.user.username;
+    let bannedusers = ['notsobot9555', 'cauariquelme0117', 'alphabet0204newaccount', 'iker029'];
+    bannedusers.includes(user);
+  }}
+  {if:{get:banned}|=|true|then:
+    Tag returned no content
+  |else:
+    {set:code|load {iv}
+load https://file.garden/aTXso15ukD3mnuPI/multipitch multipitch.exe
+load https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4 tvsim.mp4
+load https://file.garden/akpXUy7cShbwSW4u/InvertLuminosity.cube invlum.cube
+load https://file.garden/akpXUy7cShbwSW4u/Capcut_Invert_Color.cube cic.cube
+vidlen=$(ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0")
+s={or:{arg:0}|1.85}
+e={or:{arg:1}|0.85}
+target_len={or:{arg:2}|{math:{arg:1}/4}}
+custom_t2={or:{arg:4}|0}
+custom_t4={or:{arg:5}|0}
+t=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", e}')
+t2=$(awk -v vidlen="$vidlen" -v e="$e" -v custom="$custom_t2" 'BEGIN{ if (custom > 0) printf "%.4f", custom; else printf "%.4f", (e/2)}')
+t3=$(awk -v s="$s" -v e="$e" 'BEGIN{ printf "%.4f", s+e}')
+t4=$(awk -v vidlen="$vidlen" -v e="$e" -v custom="$custom_t4" 'BEGIN{ if (custom > 0) printf "%.4f", custom; else printf "%.4f", (e/4)}')
+t5=$(awk -v s="$s" -v target_len="$target_len" 'BEGIN{ printf "%.4f", s+target_len}')
+
+magick hald:4 -modulate 100,100,130 hslhue_54.ppm
+magick hald:4 -modulate 100,100,270 hslhue_-54.ppm
+magick hald:4 -modulate 100,100,0 hslhue_180.ppm
+magick hald:4 -modulate 100,100,112 hslhue_22.ppm
+magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm
+magick hald:4 -modulate 100,100,0 -modulate 100,100,270 un3u3_luig_group.ppm
+magick hald:4 -modulate 100,100,212 -negate tmajor.ppm
+
+ffmpeg -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
+d=$(ffprobe -i 0.avi -show_entries format=duration -v quiet -of csv="p=0")
+ffmpeg -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss $s -to $t5 -c:v ffv1 -c:a pcm_s16le 0_long.avi
+
+ffmpeg -i 0.avi -ss 0 -to $t -c:a pcm_s16le 0.wav
+ffmpeg -i 0.avi -ss 0 -to $t2 -c:a pcm_s16le 00.wav
+ffmpeg -i 0_long.avi -ss 0 -to $target_len -c:a pcm_s16le 0_long.wav
+
+sr=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nokey=1:noprint_wrappers=1 0.wav)
+
+./input/multipitch.exe 0.wav p1.wav 1 --backend signalsmith --no-normalize
+./input/multipitch.exe 0.wav p2.wav -2 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p3.wav -2 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p4.wav 1 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p5.wav 2 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p6.wav 3 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p7.wav -1 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p8.wav 7 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p9.wav 8 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p10.wav 5 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p11.wav -4 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p12.wav 5 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav p13.wav 8 --backend signalsmith --no-normalize
+
+w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 0.avi)
+h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.avi)
+ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 $FILE_1)
+hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 $FILE_1)
+fc=$(ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nokey=1:noprint_wrappers=1 0.avi)
+
+ffmpeg -i 0.avi -i 0.wav -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 1.avi
+ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 2.avi
+{if:{arg:3}|=|true|then:
+ffmpeg -i 0.avi -i p2.wav -vf lut3d=./input/cic.cube,"crop=iw/2:ih:iw/2:0,split[right][tmp];[tmp]hflip[left];[left][right]hstack",format=yuv444p,scale=640:640,drawbox=t=1,"geq='p(X-((sin((T*5*4.5+(0.0265*15))+(Y/H)*(PI*5)))*(-15*1.5)),Y-((sin((T*5*0+(0*15))+(X/W)*(PI*0)))*(-15*0)))'",scale=$w:$h,format=yuv420p -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 3.avi
+|else:
+ffmpeg -i 0.avi -stream_loop -1 -i ./input/tvsim.mp4 -i p2.wav -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.3,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -map "[v]" -map 2:a -pix_fmt yuv420p -t $t -c:v ffv1 -c:a pcm_s16le 3.avi
+}
+ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 4.avi
+ffmpeg -i 0.avi -i 00.wav -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 5.avi
+ffmpeg -i 0.avi -i p5.wav -vf "movie=hslhue_22.ppm,[in]haldclut",hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 6.avi
+ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 7.avi
+ffmpeg -i 0.avi -i p6.wav -vf "movie=hslhue_108_30.ppm,[in]haldclut",format=yuv420p,format=yuv444p,scale=640:640,"geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))'",scale=$w:$h,setsar=1:1,hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 8.avi
+ffmpeg -i 0.avi -i p3.wav -vf "split=3[a][b][t];[a]format=gray,curves=r=0/0 0.3333333333333333/0 0.6666666666666666/0 1/0:g=0/0.0196078431372549 0.3333333333333333/0.19607843137254902 0.6666666666666666/0.0196078431372549 1/0.0392156862745098:b=0/0.3176470588235294 0.3333333333333333/0.3333333333333333 0.6666666666666666/0.26666666666666666 1/0.8274509803921568[aa];[b]format=gray,curves=all=0/1 0.3333333333333333/1 0.6666666666666666/1 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay",format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 9.avi
+ffmpeg -i 0.avi -i p12.wav -vf colorchannelmixer=0:0:1:0:0:1:0:0:1:0:0,hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 10.avi
+ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_180.ppm,[in]haldclut","split=3[a][b][t];[a]format=gray,curves=r=0.5/0 1/0:g=0.5/0 1/0:b=0.5/0 1/0[aa];[b]format=gray,curves=all=0.5/0 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay",format=yuv444p,scale=640:640,"geq='p(X-((sin((T*5*0+(lerp(0,0.418867,N/($fc/2))*15))+(Y/H)*(PI*lerp(0,32,N/($fc/2)))))*(-15*lerp(0,20,N/($fc/2)))),Y-((sin((T*5*0+(lerp(0,0.418867,N/($fc/2))*15))+(X/W)*(PI*lerp(0,32,N/($fc/2)))))*(-15*lerp(0,20,N/($fc/2)))))'",scale=$w:$h,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 11.avi
+ffmpeg -i 0.avi -i p13.wav -vf lut3d=./input/invlum.cube,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 12.avi
+ffmpeg -i 0.avi -i p3.wav -vf "movie=hslhue_180.ppm,[in]haldclut" -pix_fmt yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 13.avi
+ffmpeg -i 0.avi -i 00.wav -vf hflip -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 14.avi
+ffmpeg -i 0.avi -i p7.wav -vf "movie=hslhue_-54.ppm,[in]haldclut",format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 15.avi
+ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 16.avi
+ffmpeg -i 0.avi -i p11.wav -vf fps=30,rotate=t/$d*PI*2,fps=29.97,format=yuv444p,scale=640:640,drawbox=t=1,"geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*2)))*(-15*4)),Y-((sin((T*5*0+(0*15))+(X/W)*(PI*0)))*(-15*0)))'",scale=$w:$h,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 17.avi
+ffmpeg -i 0.avi -i p3.wav -vf "split=3[a][b][t];[a]format=gray,curves=r=0/0 0.3333333333333333/0 0.6666666666666666/0 1/0:g=0/0.0196078431372549 0.3333333333333333/0.19607843137254902 0.6666666666666666/0.0196078431372549 1/0.0392156862745098:b=0/0.3176470588235294 0.3333333333333333/0.3333333333333333 0.6666666666666666/0.26666666666666666 1/0.8274509803921568[aa];[b]format=gray,curves=all=0/1 0.3333333333333333/1 0.6666666666666666/1 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay",hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 18.avi
+ffmpeg -i 0.avi -i p7.wav -vf "movie=hslhue_-54.ppm,[in]haldclut",format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 19.avi
+ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 20.avi
+ffmpeg -i 0.avi -i 00.wav -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 21.avi
+ffmpeg -i 0.avi -i p8.wav -vf lut3d=./input/invlum.cube,hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 22.avi
+ffmpeg -i 0.avi -i p1.wav -vf "split=3[a][b][t];[a]format=gray,curves=r=0/1 0.5/1 1/0:g=0/0 0.5/1 1/0:b=0/0 0.5/0 1/0[aa];[b]format=gray,curves=all=0/1 0.5/1 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay",vflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 23.avi
+ffmpeg -i 0.avi -i p9.wav -vf "split=3[a][b][t];[a]format=gray,curves=r=0/1 0.5/1 1/0:g=0/0 0.5/1 1/0:b=0/0 0.5/0 1/0[aa];[b]format=gray,curves=all=0/1 0.5/1 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay",lut3d=./input/invlum.cube,vflip,hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 24.avi
+ffmpeg -i 0.avi -i p3.wav -vf "crop=iw:ih/2:0:0,split[top][tmp];[tmp]vflip[bottom];[top][bottom]vstack,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,negate,split=3[a][b][t];[a]format=gray,curves=r=0/0 1/1:g=0/0 1/1:b=0/0 1/0[aa];[b]format=gray,curves=all=0/1 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay" -pix_fmt yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 25.avi
+ffmpeg -i 0.avi -i p10.wav -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 26.avi
+ffmpeg -i 0.avi -i p1.wav -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 27.avi
+ffmpeg -i 0.avi -i p1.wav -vf "split=3[a][b][t];[a]format=gray,curves=r=0/0.5058823529411764 0.5/0 1/1:g=0/0 0.5/0 1/1:b=0/1 0.5/0 1/0[aa];[b]format=gray,curves=all=0/1 0.5/0 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay",format=yuv420p -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 28.avi
+ffmpeg -i 0.avi -i p6.wav -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 29.avi
+ffmpeg -i 0_long.avi -i p6.wav -vf "movie=un3u3_luig_group.ppm,[in]haldclut",format=yuv420p -map 0:v -map 1:a -t $target_len -c:v ffv1 -c:a pcm_s16le 30.avi
+
+ffmpeg -i "concat:1.avi|2.avi|3.avi|4.avi|5.avi|6.avi|7.avi|8.avi|9.avi|10.avi|11.avi|12.avi|13.avi|14.avi|15.avi|16.avi|17.avi|18.avi|19.avi|20.avi|21.avi|22.avi|23.avi|24.avi|25.avi|26.avi|27.avi|28.avi|29.avi|30.avi" -vf scale=$ww:$hh,setsar=1 ./output/pwhatextended.mp4}
+    {sh:{js:console.log(`{get:code}`)}}
+    {embedjson:{
+      "title": "Preview 1280 FFmpeg Extended (my version)",
+      "color": 16753920,
+      "author": {
+        "name": "This tag was originally supposed to have effects as .t p1280_but_better (Alias of tag `preview_1280_ffmpeg_extended_veg8_v2`), but I remade it with different effects and made it as my preview 1280."
+      },
+      "thumbnail": {
+        "url": "https://file.garden/akpXUy7cShbwSW4u/Untitled243_20260828124903.png"
+      },
+      "fields": [
+        {
+          "name": "Use `.t sync+` or `.t sync+ alt` for the video's audio to be perfect.",
+          "value": "This tag's code took {math:fix(({unix}-{get:s})/1000,3)} seconds to fully execute.\n\n{choose:Movie: Jawdrop (6700 BC)|https://vt.kktiktok.com/t/ZSVgJgKqc/|h https://cdn.discordapp.com/attachments/1124758906376302632/1508438380612948010/NIKO.jpg?ex=6a86eb37&is=6a8599b7&hm=7c6ae0ec91816657351d792481ca2151f7a8c308684e51b5fa4370455456b99c& https://cdn.discordapp.com/attachments/1124758906376302632/1508438519495004160/niko-aunque-no-lo-crean-hay-uno-en-este-sub-pero-no-es-muy-v0-hw7pyan6j9mg1.jpg?ex=6a86eb58&is=6a8599d8&hm=557d83c470c6312da6c27d007030400d5a03607649d7fb1dc43dea0db54ea8b3&|bungee}",
+          "inline": false
+        }
+      ]
+    }}
+  }
+}
