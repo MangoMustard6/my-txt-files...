@@ -88,8 +88,8 @@ ffmpeg -i 0.avi -i p2.wav -vf lut3d=./input/cic.cube,"crop=iw/2:ih:iw/2:0,split[
 ffmpeg -i 0.avi -stream_loop -1 -i ./input/tvsim.mp4 -i p2.wav -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,format=bgr32[00];[1]crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=0.3,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap[v]" -map "[v]" -map 2:a -pix_fmt yuv420p -t $t -c:v ffv1 -c:a pcm_s16le 3.avi
 }
 
-ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 4a.avi
-ffmpeg -i 0.avi -i p13.wav -vf "movie=hslhue_54.ppm,[in]haldclut",negate,vflip,hflip,format=yuv420p -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 4b.avi
+ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=yuv420p -map 0:v -map 1:a -t $t6 -c:v ffv1 -c:a pcm_s16le 4a.avi
+ffmpeg -i 0.avi -i p13.wav -vf "movie=hslhue_54.ppm,[in]haldclut",negate,vflip,hflip,format=yuv420p -map 0:v -map 1:a -t $t6 -c:v ffv1 -c:a pcm_s16le 4b.avi
 ffmpeg -i "concat:4a.avi|4b.avi|4a.avi|4b.avi|4a.avi|4b.avi|4a.avi|4b.avi" -c:v ffv1 -c:a pcm_s16le 4.avi
 ffmpeg -i 0.avi -i 00.wav -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 5.avi
 ffmpeg -i 0.avi -i p5.wav -vf "movie=hslhue_22.ppm,[in]haldclut",hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 6.avi
