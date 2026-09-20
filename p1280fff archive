@@ -1,0 +1,56 @@
+{if:{userid}|=|1264800797292756992|then:exposed https://cdn.discordapp.com/attachments/1507226915847802910/1547806744690958346/Screenshot_20260905_113446_Discord.jpg?ex=6aa4c2dc&is=6aa3715c&hm=126ac05f080aa5d0bc62afce86c9f463efb36730a2961eaddea6344c8f6a858e& https://cdn.discordapp.com/attachments/1507226915847802910/1547806783660228618/Screenshot_20260907_153249_Discord.jpg?ex=6aa4c2e6&is=6aa37166&hm=330e48af3f28141785103d86b91b05e5b4b6ff8947be1d0c112a57998c12381e& https://cdn.discordapp.com/attachments/1507226915847802910/1547806842753650758/Screenshot_20260906_230643_Discord.jpg?ex=6aa4c2f4&is=6aa37174&hm=a1420a78f18c3df7e75809699feedac15ab06c7b90510d0249f1e8da443a5266&|else:{if:{userid}|=|1448127710026268784|then:YOU'RE NOT SLICK BEATBO 😭✌|else:{set:code|load {iv}
+load https://file.garden/aX9mS1junENdw7e-/Project%20Name%205.mp4 tvsimulator.mp4
+load https://file.garden/aTXso15ukD3mnuPI/multipitch multipitch.exe
+
+vidlen=$(ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0")
+
+s={or:{arg:0}|1.85}
+e={or:{arg:1}|0.85}
+
+t=$(awk -v vidlen="$vidlen" 'BEGIN\u007b printf "%.4f", {or:{arg:1}|0.85}\u007d')
+t2=$(awk -v vidlen="$vidlen" 'BEGIN\u007b printf "%.4f", ({or:{arg:1}|0.85})/2\u007d')
+t3=$(awk -v vidlen="$vidlen" 'BEGIN\u007b printf "%.4f", ({or:{arg:0}|1.85})+({or:{arg:1}|0.85})\u007d')
+
+magick hald:4 -modulate 100,100,%[fx:0.150*200+100] hslhue_54.ppm
+magick hald:4 -modulate 100,100,%[fx:0.5*200+100] hslhue_180.ppm
+magick hald:4 -modulate 100,100,%[fx:0.060*200+100] hslhue_21_6.ppm
+magick hald:4 -modulate 100,130,%[fx:0.3*200+100] hslhue_108_30.ppm
+
+ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=2160:2160,setsar=1:1 -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
+
+ffmpeg -stream_loop -1 -i $FILE_1 -ss $s -to $t3 -c:a pcm_s16le 0.wav
+ffmpeg -stream_loop -1 -i 0.wav -t $t2 -c:a pcm_s16le 00.wav
+
+sr=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nokey=1:noprint_wrappers=1 0.wav)
+fr=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nokey=1:noprint_wrappers=1 0.avi)
+
+ffmpeg -i 0.wav -af asetrate=$sr/2
+./input/multipitch.exe 0.wav 1.wav 1 --backend signalsmith --no-normalize
+./input/multipitch.exe 0.wav 2.wav -2 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav 3.wav -2 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav 4.wav 1 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav 5.wav 2 --backend signalsmith --no-normalize
+./input/multipitch.exe 00.wav 6.wav 3 --backend signalsmith --no-normalize
+
+
+w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 0.avi)
+h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.avi)
+
+ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 $FILE_1)
+hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 $FILE_1)
+
+ffmpeg -i ./input/tvsimulator.mp4 -vf null tvsimulatormod.mov
+ffmpeg -i 0.avi -vf null -c:v ffv1 -c:a pcm_s16le -preset ultrafast modfps.avi
+ffmpeg -i modfps.avi -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 0.avi
+ffmpeg -i modfps.avi -i 1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 1.avi
+ffmpeg -i modfps.avi -stream_loop -1 -i tvsimulatormod.mov -i 2.wav -filter_complex "movie=hslhue_180.ppm[h];[0][h]haldclut,hflip,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,format=yuv420p,fps=29.97,format=bgr32[00];[1]fps=29.97,crop=iw:ih/1:0:0,scale=$w:$h,eq=contrast=(1-0.70)*5,format=bgr32,hue=b=-0.033[x];nullsrc=1x1,geq=r=128:g=128:b=128,scale=$w:$h,format=bgr32[y];[00][x][y]displace=edge=wrap,fps=$fr,format=rgb48le[v]" -map "[v]" -map 2:a -pix_fmt yuv420p -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 2.avi
+ffmpeg -i modfps.avi -i 1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 3.avi
+ffmpeg -i 0.avi -t $t2 -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 4.avi
+ffmpeg -i 0.avi -i 5.wav -vf "movie=hslhue_21_6.ppm,[in]haldclut",hflip,format=rgb48le -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 5.avi
+ffmpeg -i 1.avi -t $t2 -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 6.avi
+ffmpeg -i 0.avi -i 6.wav -vf "movie=hslhue_108_30.ppm,[in]haldclut",hflip,format=rgb48le -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 7.avi
+ffmpeg -i 0.avi -i 3.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 8.avi
+ffmpeg -i 0.avi -vf hflip -t $t2 -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 9.avi
+ffmpeg -i 1.avi -t $t2 -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 10.avi
+ffmpeg -i 7.avi -t $t2 -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 11.avi
+ffmpeg -i "concat:0.avi|1.avi|2.avi|3.avi|4.avi|5.avi|6.avi|7.avi|8.avi|9.avi|10.avi|11.avi" -vf scale=$ww:$hh,setsar=1 -af "asetrate=$sr,bass=g=PI:f=23.1:transform=5" ./output/p1280.mp4} {sh:{js:console.log(`{get:code}`)}}}}
