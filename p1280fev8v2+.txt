@@ -2,7 +2,7 @@
 load https://file.garden/aX9mS1junENdw7e-/Project%20Name%205.mp4 tvsim.mp4
 load https://file.garden/aTXso15ukD3mnuPI/multipitch multipitch.exe
 
-vidlen=$(ffprobe -i$FILE_1 -show_entries format=duration -v quiet -of csv="p=0")
+vidlen=$(ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0")
 
 s={or:{arg:0}|1.85}
 e={or:{arg:1}|0.85}
@@ -21,10 +21,10 @@ magick hald:4 -modulate 100,100,%[fx:180/1.8+100] hslhue_180.ppm
 magick hald:4 -modulate 100,100,%[fx:21.6/1.8+100] hslhue_21_6.ppm
 magick hald:4 -modulate 100,130,%[fx:108/1.8+100] hslhue_108_30.ppm
 
-{if:{or:{arg:3}|0}==1|ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss 0 -to$s -c:v ffv1 -c:a pcm_s16le pre.avi
+{if:{or:{arg:3}|0}==1|ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss 0 -to $s -c:v ffv1 -c:a pcm_s16le pre.avi
 ffmpeg -stream_loop -1 -i $FILE_1 -ss 0 -to $s -c:a pcm_s16le pre.wav|}
 
-ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss $s -to$t3 -c:v ffv1 -c:a pcm_s16le 0.avi
+ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
 d=$(ffprobe -i 0.avi -show_entries format=duration -v quiet -of csv="p=0")
 
 ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss $s -to $t28_end -c:v ffv1 -c:a pcm_s16le 0_long.avi
@@ -65,8 +65,8 @@ ffmpeg {if:{or:{arg:3}|0}==1|-i pre.wav |}-i 0_t.wav -i a2.wav -i a3.wav -i a4.w
 w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 0.avi)
 h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.avi)
 
-ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1$FILE_1)
-hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1$FILE_1)
+ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 $FILE_1)
+hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 $FILE_1)
 
 ffmpeg -i ./input/tvsim.mp4 -vf fps=29.97 tvsimulator.mov
 
