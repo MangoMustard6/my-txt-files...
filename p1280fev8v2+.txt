@@ -6,7 +6,7 @@ vidlen=$(ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0"
 
 s={or:{arg:0}|1.85}
 e={or:{arg:1}|0.85}
-custom_t28={or:{arg:2}|3.4}
+custom_t28={or:{arg:2}|5}
 use_pre={or:{arg:3}|0}
 
 t=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", e}')
@@ -33,19 +33,17 @@ ffmpeg -stream_loop -1 -i $FILE_1 -ss $s -to $t28_end -c:a pcm_s16le 0_long.wav
 ffmpeg -stream_loop -1 -i $FILE_1 -ss $s -to $t3 -c:a pcm_s16le 0.wav
 ffmpeg -stream_loop -1 -i 0.wav -t $t -c:a pcm_s16le 0_t.wav
 ffmpeg -stream_loop -1 -i 0.wav -t $t2 -c:a pcm_s16le 0_t2.wav
-ffmpeg -stream_loop -1 -i 0.wav -af "atempo=2^(1/4)" -t $t2 -c:a pcm_s16le 0_t2_speed.wav
 ffmpeg -i 0_long.wav -t $t28 -c:a pcm_s16le 0_t28.wav
-ffmpeg -i 0_long.wav -af "atempo=2^(1/4)" -t $t28 -c:a pcm_s16le 0_t28_speed.wav
 
 ./input/multipitch.exe 0_t.wav a2.wav 1 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t.wav a3.wav -2 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t.wav a4.wav 1 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t2.wav a6.wav 2 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t2.wav a7.wav 1 --backend signalsmith --no-normalize
-./input/multipitch.exe 0_t2_speed.wav a8.wav 3 --backend signalsmith --no-normalize
+./input/multipitch.exe 0_t2.wav a8.wav 3 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t2.wav a9.wav -2 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t2.wav a11.wav 1 --backend signalsmith --no-normalize
-./input/multipitch.exe 0_t2_speed.wav a12.wav 3 --backend signalsmith --no-normalize
+./input/multipitch.exe 0_t2.wav a12.wav 3 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t2.wav a13.wav -2 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t2.wav a15.wav -1 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t2.wav a16.wav 1 --backend signalsmith --no-normalize
@@ -58,7 +56,7 @@ ffmpeg -i 0_long.wav -af "atempo=2^(1/4)" -t $t28 -c:a pcm_s16le 0_t28_speed.wav
 ./input/multipitch.exe 0_t2.wav a24.wav 8 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t2.wav a25.wav -2 --backend signalsmith --no-normalize
 ./input/multipitch.exe 0_t2.wav a27.wav 1 --backend signalsmith --no-normalize
-./input/multipitch.exe 0_t28_speed.wav a28.wav 3 --backend signalsmith --no-normalize
+./input/multipitch.exe 0_t28.wav a28.wav 3 --backend signalsmith --no-normalize
 
 ffmpeg {if:{arg:3}|=|1|then:-i pre.wav|else:} -i 0_t.wav -i a2.wav -i a3.wav -i a4.wav -i 0_t2.wav -i a6.wav -i a7.wav -i a8.wav -i a9.wav -i 0_t2.wav -i a11.wav -i a12.wav -i a13.wav -i 0_t2.wav -i a15.wav -i a16.wav -i a17.wav -i a18.wav -i a19.wav -i a20.wav -i 0_t2.wav -i a22.wav -i a23.wav -i a24.wav -i a25.wav -i 0_t2.wav -i a27.wav -i a28.wav -filter_complex "{if:{arg:3}|=|1|then:[0:a][1:a][2:a][3:a][4:a][5:a][6:a][7:a][8:a][9:a][10:a][11:a][12:a][13:a][14:a][15:a][16:a][17:a][18:a][19:a][20:a][21:a][22:a][23:a][24:a][25:a][26:a][27:a][28:a]concat=n=29:v=0:a=1|else:[0:a][1:a][2:a][3:a][4:a][5:a][6:a][7:a][8:a][9:a][10:a][11:a][12:a][13:a][14:a][15:a][16:a][17:a][18:a][19:a][20:a][21:a][22:a][23:a][24:a][25:a][26:a][27:a]concat=n=28:v=0:a=1},bass=g=PI:f=23.1:transform=5[a]" -map "[a]" audio.wav
 
