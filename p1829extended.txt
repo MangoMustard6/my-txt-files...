@@ -97,8 +97,8 @@ ffmpeg -i 0.avi -i p3.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le
 ffmpeg -i 0.avi -i p9.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le,rotate=PI,negate,format=yuv420p -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 4_6.avi
 ffmpeg -i "concat:4_1.avi|4_2.avi|4_1.avi|4_2.avi|4_3.avi|4_4.avi|4_3.avi|4_4.avi|4_5.avi|4_6.avi|4_5.avi|4_6.avi|4_3.avi|4_4.avi|4_3.avi|4_4.avi" -c:v ffv1 -c:a pcm_s16le 4_25.avi
 ffmpeg -i 4_25.avi -vf "negate,lutrgb='if(gt(val,((60/100)*255)),255,0)':g='if(gt(val,((60/100)*255)),255,0)':b='if(gt(val,((60/100)*255)),255,0)'",format=yuv420p -preset ultrafast -qp 1 -tune fastdecode -c:v ffv1 -c:a pcm_s16le 4_251.avi
-ffmpeg -i 4_251.avi 4_252.wav
-./input/multipitch 4_252.wav out.wav -4 --backend signalsmith --no-normalize
+ffmpeg -i 4_251.avi -c:a pcm_s16le 4_252.wav
+./input/multipitch.exe 4_252.wav out.wav -4 --backend signalsmith --no-normalize
 ffmpeg -i 4_251.avi -i out.wav -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -preset ultrafast 4_75.avi
 
 ffmpeg -i 0.avi -i 00.wav -filter_complex "[0:v]format=yuv444p,geq='p((W/2)+(X-(W/2))/lerp(1,2,T/$t2),(H/2)+(Y-(H/2))/1)',scale=$w:$h,format=yuv420p,split=2[orig][proc];[proc]split=3[a][b][t];[a]format=gray,curves=r=0.5/0 1/0:g=0.5/0 1/0:b=0.5/0 1/0[aa];[b]format=gray,curves=all=0.5/0 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay[grad];[orig][grad]blend=all_expr='A*(1-min(T/($t2),1))+B*min(T/($t2),1)'[out]" -map "[out]" -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 5.avi
