@@ -4,7 +4,7 @@ load https://file.garden/aTXso15ukD3mnuPI/multipitch multipitch
 
 vidlen=$(ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0")
 
-s={or:{arg:0}|1.85}
+s={or:{arg:0}|2.2}
 e=1.1
 
 t=$(awk -v vidlen="$vidlen" 'BEGIN\u007b printf "%.8f", 1.1\u007d')
