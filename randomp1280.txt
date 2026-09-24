@@ -61,7 +61,7 @@ ffmpeg -i 9v.avi -i 9a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 9.avi
 
 ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.5*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,hflip,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 10v.avi
 ffmpeg -i 10v.avi 10h.wav
-./input/multipitch 10h.wav 10a.wav 1 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+./input/multipitch 10h.wav 10a.wav 5 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
 ffmpeg -i 10v.avi -i 10a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 10.avi
 
 ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.15*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 11v.avi
