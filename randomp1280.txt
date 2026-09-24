@@ -1,0 +1,85 @@
+{set:code|load {iv}
+
+load https://file.garden/aTXso15ukD3mnuPI/multipitch multipitch
+
+vidlen=$(ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0")
+
+s={or:{arg:0}|1.85}
+e=1.1
+
+t=$(awk -v vidlen="$vidlen" 'BEGIN\u007b printf "%.8f", 1.1\u007d')
+t2=$(awk -v vidlen="$vidlen" 'BEGIN\u007b printf "%.8f", 0.485\u007d')
+
+ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1 -ss $s -t $t -c:v utvideo -c:a pcm_s16le 0.avi
+
+w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 0.avi)
+h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.avi)
+
+d=$(ffprobe -i 0.avi -show_entries format=duration -v quiet -of csv="p=0")
+
+ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 $FILE_1)
+hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 $FILE_1)
+
+ffmpeg -i 0.avi -t $t -c:v utvideo -c:a pcm_s16le 1.avi
+
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.15*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 2v.avi
+ffmpeg -i 2v.avi 2h.wav
+./input/multipitch 2h.wav 2a.wav 1 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 2v.avi -i 2a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 2.avi
+
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.5*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut",hflip,"crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack",format=yuv444p,scale=640:640,"geq='p(X-((sin((T*5*2/$d+(0*15))+(Y/H)*(PI*5)))*(-15*1.5)),Y-((sin((T*5*0+(0*15))+(X/W)*(PI*0)))*(-15*0)))'",scale=$w:$h,format=yuv420p16le -t $t -c:v utvideo -c:a pcm_s16le 3v.avi
+ffmpeg -i 3v.avi 3h.wav
+./input/multipitch 3h.wav 3a.wav -2 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 3v.avi -i 3a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 3.avi
+
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.15*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 4v.avi
+ffmpeg -i 4v.avi 4h.wav
+./input/multipitch 4h.wav 4a.wav 1 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 4v.avi -i 4a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 4.avi
+
+ffmpeg -i 0.avi -t $t2 -c:v utvideo -c:a pcm_s16le 5.avi
+
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.06*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le",hflip -t $t2 -c:v utvideo -c:a pcm_s16le 6v.avi
+ffmpeg -i 6v.avi 6h.wav
+./input/multipitch 6h.wav 6a.wav 2 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 6v.avi -i 6a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 6.avi
+
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.15*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 7v.avi
+ffmpeg -i 7v.avi 7h.wav
+./input/multipitch 7h.wav 7a.wav 1 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 7v.avi -i 7a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 7.avi
+
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,130,%[fx:0.3*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le",hflip -t $t2 -c:v utvideo -c:a pcm_s16le 8v.avi
+ffmpeg -i 8v.avi 8h.wav
+./input/multipitch 8h.wav 8a.wav 3 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 8v.avi -i 8a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 8.avi
+
+ffmpeg -i 0.avi -vf "format=gray,curves=r=0/1 1/0:g=0/1 1/0:b=0/0 1/0,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,crop=iw:ih/2:0:0,split[top][tmp];[tmp]vflip[bottom];[top][bottom]vstack,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 9v.avi
+ffmpeg -i 9v.avi 9h.wav
+./input/multipitch 9h.wav 9a.wav -2 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 9v.avi -i 9a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 9.avi
+
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.5*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,hflip,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 10v.avi
+ffmpeg -i 10v.avi 10h.wav
+./input/multipitch 10h.wav 10a.wav 1 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 10v.avi -i 10a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 10.avi
+
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.15*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 11v.avi
+ffmpeg -i 11v.avi 11h.wav
+./input/multipitch 11h.wav 11a.wav 1 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 11v.avi -i 11a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 11.avi
+
+ffmpeg -i 0.avi -vf "movie=$(magick hald:8 -colorspace lab -channel r -negate +channel -colorspace srgb -level 10%,105% -brightness-contrast 1.5x-5.5 imagemagick.ppm; echo imagemagick.ppm),[in]haldclut",hflip,format=yuv420p16le -t $t2 -c:v utvideo -c:a pcm_s16le 12v.avi
+ffmpeg -i 12v.avi 12h.wav
+./input/multipitch 12h.wav 12a.wav 8 --bungee-args "chunk=32768 flush=1000 hop=-1 instrumentation=1" --no-normalize
+ffmpeg -i 12v.avi -i 12a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 12.avi
+
+for i in $(seq 1 12); do
+   echo "file $i.avi"
+done >> conc.txt
+
+ffmpeg -f concat -safe 0 -i "conc.txt" -vf scale=$ww:$hh,setsar=1 -pix_fmt yuv420p ./output/p1280.mp4
+
+rm -f *.avi conc.txt}
+{sh:{traversejson:[0]|[{replace:\\\\u|\u|{replace:\\r||{jsonify:{get:code}}}}]}}
+make sure you use `.t sync+` to make the video synced to the audio
