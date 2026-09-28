@@ -17,6 +17,7 @@ w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=
 h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.avi)
 
 d=$(ffprobe -i 0.avi -show_entries format=duration -v quiet -of csv="p=0")
+fr=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nokey=1:noprint_wrappers=1 0.avi)
 
 ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 $FILE_1)
 hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 $FILE_1)
@@ -33,12 +34,12 @@ ffmpeg -i 3v.avi 3h.wav
 ./input/multipitch 3h.wav 3a.wav -2 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 3v.avi -i 3a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 3.avi
 
-ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.15*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t3 -c:v utvideo -c:a pcm_s16le 4av.avi
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.15*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,scale=640:360,setsar=1:1,rotate=PI*t/$t3,scale=$w:$h,setsar=1:1,format=yuv420p,fps=$fr,format=yuv420p16le" -t $t3 -c:v utvideo -c:a pcm_s16le 4av.avi
 ffmpeg -i 4av.avi 4ah.wav
 ./input/multipitch 4ah.wav 4aa.wav 1 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 4av.avi -i 4aa.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 4a.avi
 
-ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.15*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,negate,format=yuv420p16le" -t $t3 -c:v utvideo -c:a pcm_s16le 4bv.avi
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.64*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,scale=640:360,setsar=1:1,rotate=-PI*t/$t3,scale=$w:$h,setsar=1:1,format=yuv420p,fps=$fr,format=yuv420p16le" -t $t3 -c:v utvideo -c:a pcm_s16le 4bv.avi
 ffmpeg -i 4bv.avi 4bh.wav
 ./input/multipitch 4bh.wav 4ba.wav 8 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 4bv.avi -i 4ba.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 4b.avi
@@ -47,12 +48,12 @@ ffmpeg -i "concat:4a.avi|4b.avi|4a.avi|4b.avi|4a.avi|4b.avi|4a.avi|4b.avi" -c:v 
 
 ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.625*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,negate,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 5av.avi
 ffmpeg -i 5av.avi 5ah.wav
-./input/multipitch 5ah.wav 5aa.wav -6.5,0.5,7.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
+./input/multipitch 5ah.wav 5aa.wav -6.466,0.534,7.534 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 5av.avi -i 5aa.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 5a.avi
 
 ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.625*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 5bv.avi
 ffmpeg -i 5bv.avi 5bh.wav
-./input/multipitch 5bh.wav 5ba.wav 0.5,7.5,14.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
+./input/multipitch 5bh.wav 5ba.wav 0.534,7.534,14.534 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 5bv.avi -i 5ba.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 5b.avi
 
 ffmpeg -i "concat:5a.avi|5b.avi" -c:v utvideo -c:a pcm_s16le 5.avi
