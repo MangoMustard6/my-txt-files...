@@ -46,14 +46,14 @@ ffmpeg -i 4bv.avi -i 4ba.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 4b.av
 
 ffmpeg -i "concat:4a.avi|4b.avi|4a.avi|4b.avi|4a.avi|4b.avi|4a.avi|4b.avi" -c:v utvideo -c:a pcm_s16le 4.avi
 
-ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.625*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,negate,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 5av.avi
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.534*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,negate,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 5av.avi
 ffmpeg -i 5av.avi 5ah.wav
-./input/multipitch 5ah.wav 5aa.wav -6.466,0.534,7.534 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
+./input/multipitch 5ah.wav 5aa.wav -20.446,-13.446,-6.466,0.534,7.534,14.534,21.534 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 5av.avi -i 5aa.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 5a.avi
 
-ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.625*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 5bv.avi
+ffmpeg -i 0.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.534*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 5bv.avi
 ffmpeg -i 5bv.avi 5bh.wav
-./input/multipitch 5bh.wav 5ba.wav 0.534,7.534,14.534 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
+./input/multipitch 5bh.wav 5ba.wav -13.466,-6.466,0.534,7.534,14.534,21.534,28.534 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 5bv.avi -i 5ba.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 5b.avi
 
 ffmpeg -i "concat:5a.avi|5b.avi" -c:v utvideo -c:a pcm_s16le 5.avi
@@ -95,4 +95,4 @@ ffmpeg -f concat -safe 0 -i "conc.txt" -vf scale=$ww:$hh,setsar=1 -pix_fmt yuv42
 
 rm -f *.avi conc.txt}
 {sh:{traversejson:[0]|[{replace:\\\\u|\u|{replace:\\r||{jsonify:{get:code}}}}]}}
-.t sync+
+Reminder to use .t sync+ or .t sync+ alt to make the video perfect.
