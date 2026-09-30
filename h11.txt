@@ -1,6 +1,4 @@
-{set:code|load {iv}
-
-load https://file.garden/aTXso15ukD3mnuPI/multipitch multipitch
+{set:code|load https://file.garden/aTXso15ukD3mnuPI/multipitch multipitch
 load https://file.garden/aTXso15ukD3mnuPI/tv_sim_displacement_map.mov tvsim.mov
 
 vidlen=$(ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0")
@@ -13,27 +11,27 @@ t2=$(awk -v vidlen="$vidlen" 'BEGIN\u007b printf "%.8f", ({or:{arg:1}|1.2})/2\u0
 t3=$(awk -v vidlen="$vidlen" 'BEGIN\u007b printf "%.8f", ({or:{arg:1}|1.2})/8\u007d')
 t4=$(awk -v vidlen="$vidlen" 'BEGIN\u007b printf "%.8f", ({or:{arg:1}|1.2})/4\u007d')
 
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,130 hsv_54.ppm
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,200 hsv_180.ppm
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,112 hsv_21_6.ppm
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,232 hsv_237_6.ppm
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,115 hsv_27.ppm
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,285 hsv_333.ppm
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,130,227.8 hsv_230_04_30.ppm
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,130,160 hsv_108_30.ppm
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,200 -negate -modulate 100,100,340 hsv_2c.ppm
-magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,340 -negate hsv_5b.ppm
-
 ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss $s -t $t -c:v utvideo -c:a pcm_s16le 0.avi
 
 w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 0.avi)
 h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.avi)
 
 d=$(ffprobe -i 0.avi -show_entries format=duration -v quiet -of csv="p=0")
-ffmpeg -i ./input/tvsim.mov -vf fps=59.97 -c:v utvideo -an tvsimmod.mov
 
 ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 $FILE_1)
 hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 $FILE_1)
+
+# Pre-generate distinct CLUTs
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.15*200+100] hsv_54.ppm
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.5*200+100] hsv_180.ppm
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.5*200+100] -negate -modulate 100,100,%[fx:0.7*200+200] hsv_180_neg.ppm
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.7*200+200] -negate hsv_252.ppm
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.06*200+100] hsv_21.6.ppm
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.66*200+100] hsv_237.6.ppm
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.075*200+100] hsv_27.ppm
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.925*200+100] hsv_333.ppm
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,130,%[fx:0.639*200+100] hsv_230.04.ppm
+magick hald:4 -define modulate:colorspace=hsl -modulate 100,130,%[fx:0.3*200+100] hsv_108.ppm
 
 ffmpeg -i 0.avi -t $t -c:v utvideo -c:a pcm_s16le 1.avi
 ffmpeg -i 0.avi -vf "movie=hsv_54.ppm,[in]haldclut,format=yuv420p16le" -t $t2 -c:v utvideo -c:a pcm_s16le 2av.avi
@@ -44,13 +42,13 @@ ffmpeg -i 0.avi -vf "movie=hsv_180.ppm,[in]haldclut,negate,format=yuv420p16le" -
 ffmpeg -i 2bv.avi 2bh.wav
 ./input/multipitch 2bh.wav 2ba.wav 8 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 2bv.avi -i 2ba.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 2b.avi
-ffmpeg -i 0.avi -vf "movie=hsv_2c.ppm,[in]haldclut,format=yuv444p16le,scale=640:640,transpose=1,vflip,geq='p(X\,(Y-H/2)/(100/(100-0))+H/2)',geq='p(X\,(Y-H/2)*(100/(100-0))+H/2)',geq='p(X\,Y-H*(26/800)*sin(T*((21)/3.25)+X/W*((73/(10*pow(2\,log(25/73)/log(2.5)))))*PI))',transpose=2,hflip,scale=$w:$h,setsar=1:1,format=yuv444p16le,scale=640:640,geq='p(X\,(Y-H/2)/(100/(100-0))+H/2)',geq='p(X\,(Y-H/2)*(100/(100-0))+H/2)',geq='p(X\,Y-H*(26/800)*sin(T*((21)/3.25)+X/W*((73/(10*pow(2\,log(25/73)/log(2.5)))))*PI))',scale=$w:$h,setsar=1:1,format=yuv420p16le" -t $t3 -c:v utvideo -c:a pcm_s16le 2cv.avi
+ffmpeg -i 0.avi -vf "movie=hsv_180_neg.ppm,[in]haldclut,format=yuv444p16le,scale=640:640,transpose=1,vflip,geq='p(X\,(Y-H/2)/(100/(100-0))+H/2)',geq='p(X\,(Y-H/2)*(100/(100-0))+H/2)',geq='p(X\,Y-H*(26/800)*sin(T*((21)/3.25)+X/W*((73/(10*pow(2\,log(25/73)/log(2.5)))))*PI))',transpose=2,hflip,scale=$w:$h,setsar=1:1,format=yuv444p16le,scale=640:640,geq='p(X\,(Y-H/2)/(100/(100-0))+H/2)',geq='p(X\,(Y-H/2)*(100/(100-0))+H/2)',geq='p(X\,Y-H*(26/800)*sin(T*((21)/3.25)+X/W*((73/(10*pow(2\,log(25/73)/log(2.5)))))*PI))',scale=$w:$h,setsar=1:1,format=yuv420p16le" -t $t3 -c:v utvideo -c:a pcm_s16le 2cv.avi
 ffmpeg -i 2cv.avi 2ch.wav
 ./input/multipitch 2ch.wav 2ca.wav 15 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 2cv.avi -i 2ca.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 2c.avi
 ffmpeg -i "concat:2a.avi|2b.avi|2c.avi|2b.avi|2c.avi" -c:v utvideo -c:a pcm_s16le 2.avi
 
-ffmpeg -i 0.avi -vf "movie=hsv_180.ppm[h];movie=tvsimmod.mov:loop=(2^31)-1,trim=duration=$d[d];[0]scale=854:854,format=bgr32,crop=iw/2:ih:iw/2:0,split[right][tmp];[tmp]hflip[left];[left][right]hstack[00];[d]scale=854:854,eq=contrast='(1-0.75)*2.366666':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=854x854:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1[v];[v][h]haldclut,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 3v.avi
+ffmpeg -i 0.avi -vf "movie=hsv_180.ppm[h];movie=./input/tvsim.mov:loop=(2^31)-1,trim=duration=$d[d];[0]scale=854:854,format=bgr32,crop=iw/2:ih:iw/2:0,split[right][tmp];[tmp]hflip[left];[left][right]hstack[00];[d]scale=854:854,eq=contrast='(1-0.75)*2.366666':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=854x854:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1[v];[v][h]haldclut,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 3v.avi
 ffmpeg -i 3v.avi 3h.wav
 ./input/multipitch 3h.wav 3a.wav -2 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 3v.avi -i 3a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 3.avi
@@ -58,13 +56,13 @@ ffmpeg -i 0.avi -vf negate,format=yuv420p16le -t $t4 -c:v utvideo -c:a pcm_s16le
 ffmpeg -i 5av.avi 5ah.wav
 ./input/multipitch 5ah.wav 5aa.wav 0,7 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 5av.avi -i 5aa.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 5a.avi
-ffmpeg -i 0.avi -vf "movie=hsv_5b.ppm,[in]haldclut,format=yuv444p16le,scale=640:640,transpose=1,vflip,geq='p(X\,(Y-H/2)/(100/(100-0))+H/2)',geq='p(X\,(Y-H/2)*(100/(100-0))+H/2)',geq='p(X\,Y-H*(26/800)*sin(T*((21)/3.25)+X/W*((73/(10*pow(2\,log(25/73)/log(2.5)))))*PI))',transpose=2,hflip,scale=$w:$h,setsar=1:1,format=yuv444p16le,scale=640:640,geq='p(X\,(Y-H/2)/(100/(100-0))+H/2)',geq='p(X\,(Y-H/2)*(100/(100-0))+H/2)',geq='p(X\,Y-H*(26/800)*sin(T*((21)/3.25)+X/W*((73/(10*pow(2\,log(25/73)/log(2.5)))))*PI))',scale=$w:$h,setsar=1:1,format=yuv420p16le" -t $t4 -c:v utvideo -c:a pcm_s16le 5bv.avi
+ffmpeg -i 0.avi -vf "movie=hsv_252.ppm,[in]haldclut,format=yuv444p16le,scale=640:640,transpose=1,vflip,geq='p(X\,(Y-H/2)/(100/(100-0))+H/2)',geq='p(X\,(Y-H/2)*(100/(100-0))+H/2)',geq='p(X\,Y-H*(26/800)*sin(T*((21)/3.25)+X/W*((73/(10*pow(2\,log(25/73)/log(2.5)))))*PI))',transpose=2,hflip,scale=$w:$h,setsar=1:1,format=yuv444p16le,scale=640:640,geq='p(X\,(Y-H/2)/(100/(100-0))+H/2)',geq='p(X\,(Y-H/2)*(100/(100-0))+H/2)',geq='p(X\,Y-H*(26/800)*sin(T*((21)/3.25)+X/W*((73/(10*pow(2\,log(25/73)/log(2.5)))))*PI))',scale=$w:$h,setsar=1:1,format=yuv420p16le" -t $t4 -c:v utvideo -c:a pcm_s16le 5bv.avi
 ffmpeg -i 5bv.avi 5bh.wav
 ./input/multipitch 5bh.wav 5ba.wav 7,14 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 5bv.avi -i 5ba.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 5b.avi
 ffmpeg -i "concat:5a.avi|5b.avi|5a.avi|5b.avi" -c:v utvideo -c:a pcm_s16le 5.avi
 
-ffmpeg -i 5.avi -vf "movie=hsv_21_6.ppm,[in]haldclut,format=yuv420p16le,hflip" -t $t -c:v utvideo -c:a pcm_s16le 6v.avi
+ffmpeg -i 5.avi -vf "movie=hsv_21.6.ppm,[in]haldclut,format=yuv420p16le,hflip" -t $t -c:v utvideo -c:a pcm_s16le 6v.avi
 ffmpeg -i 6v.avi 6h.wav
 ./input/multipitch 6h.wav 6a.wav 2 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 6v.avi -i 6a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 6.avi
@@ -76,11 +74,11 @@ ffmpeg -i 5.avi -vf "format=rgb32,shuffleplanes=1:0:2,format=yuv444p16le,hflip,s
 ffmpeg -i 8v.avi 8h.wav
 ./input/multipitch 8h.wav 8a.wav 3 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 8v.avi -i 8a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 8.avi
-ffmpeg -i 5.avi -vf "movie=hsv_180.ppm[h];movie=tvsimmod.mov:loop=(2^31)-1,trim=duration=$d[d];[0]scale=854:854,format=bgr32,crop=iw/2:ih:iw/2:0,split[right][tmp];[tmp]hflip[left];[left][right]hstack[00];[d]scale=854:854,eq=contrast='(1-0.75)*2.366666':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=854x854:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1[v];[v][h]haldclut,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 9v.avi
+ffmpeg -i 5.avi -vf "movie=hsv_180.ppm[h];movie=./input/tvsim.mov:loop=(2^31)-1,trim=duration=$d[d];[0]scale=854:854,format=bgr32,crop=iw/2:ih:iw/2:0,split[right][tmp];[tmp]hflip[left];[left][right]hstack[00];[d]scale=854:854,eq=contrast='(1-0.75)*2.366666':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=854x854:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1[v];[v][h]haldclut,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 9v.avi
 ffmpeg -i 9v.avi 9h.wav
 ./input/multipitch 9h.wav 9a.wav -2 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 9v.avi -i 9a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 9.avi
-ffmpeg -i 5.avi -vf "movie=hsv_237_6.ppm,[in]haldclut,format=yuv444p16le,geq='p(W*(.5-.151)+((X-W*(.5-.151))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5-.151))/(W*(.5-.348)),(Y-H*(.5-.071))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5),H*(.5-.071)+((Y-H*(.5-.071))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5-.151))/(W*(.5-.348)),(Y-H*(.5-.071))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5))',scale=iw:ih,format=yuv444p16le,geq='p(W*(.5+.137)+((X-W*(.5+.137))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5+.137))/(W*(.5-.348)),(Y-H*(.5-.051))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5),H*(.5-.051)+((Y-H*(.5-.051))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5+.137))/(W*(.5-.348)),(Y-H*(.5-.051))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5))',scale=iw:ih,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 10v.avi
+ffmpeg -i 5.avi -vf "movie=hsv_237.6.ppm,[in]haldclut,format=yuv444p16le,geq='p(W*(.5-.151)+((X-W*(.5-.151))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5-.151))/(W*(.5-.348)),(Y-H*(.5-.071))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5),H*(.5-.071)+((Y-H*(.5-.071))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5-.151))/(W*(.5-.348)),(Y-H*(.5-.071))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5))',scale=iw:ih,format=yuv444p16le,geq='p(W*(.5+.137)+((X-W*(.5+.137))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5+.137))/(W*(.5-.348)),(Y-H*(.5-.051))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5),H*(.5-.051)+((Y-H*(.5-.051))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5+.137))/(W*(.5-.348)),(Y-H*(.5-.051))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5))',scale=iw:ih,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 10v.avi
 ffmpeg -i 10v.avi 10h.wav
 ./input/multipitch 10h.wav 10a.wav -1.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 10v.avi -i 10a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 10.avi
@@ -92,11 +90,11 @@ ffmpeg -i 5.avi -vf "movie=hsv_333.ppm,[in]haldclut,format=yuv420p16le" -t $t -c
 ffmpeg -i 12v.avi 12h.wav
 ./input/multipitch 12h.wav 12a.wav -0.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 12v.avi -i 12a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 12.avi
-ffmpeg -i 5.avi -vf "movie=hsv_230_04_30.ppm,[in]haldclut,format=yuv444p16le,scale=640:640,geq='p(X-((sin((T*5*0+(0))+(Y/H)*(PI*0)))*(-15*0*40)),Y-((sin((T*5*0+(0))+(X/W)*(PI*3.8)))*(-15*.1*40)))',scale=$w:$h,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 13v.avi
+ffmpeg -i 5.avi -vf "movie=hsv_230.04.ppm,[in]haldclut,format=yuv444p16le,scale=640:640,geq='p(X-((sin((T*5*0+(0))+(Y/H)*(PI*0)))*(-15*0*40)),Y-((sin((T*5*0+(0))+(X/W)*(PI*3.8)))*(-15*.1*40)))',scale=$w:$h,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 13v.avi
 ffmpeg -i 13v.avi 13h.wav
 ./input/multipitch 13h.wav 13a.wav -3.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 13v.avi -i 13a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 13.avi
-ffmpeg -i 5.avi -vf "movie=hsv_108_30.ppm,[in]haldclut,format=yuv444p16le,scale=640:640,geq='p(X-((sin((T*5*0+(0))+(Y/H)*(PI*0)))*(-15*0*40)),Y-((sin((T*5*0+(0))+(X/W)*(PI*2)))*(-15*.1*40)))',scale=$w:$h,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 14v.avi
+ffmpeg -i 5.avi -vf "movie=hsv_108.ppm,[in]haldclut,format=yuv444p16le,scale=640:640,geq='p(X-((sin((T*5*0+(0))+(Y/H)*(PI*0)))*(-15*0*40)),Y-((sin((T*5*0+(0))+(X/W)*(PI*2)))*(-15*.1*40)))',scale=$w:$h,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 14v.avi
 ffmpeg -i 14v.avi 14h.wav
 ./input/multipitch 14h.wav 14a.wav 1.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 14v.avi -i 14a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 14.avi
@@ -124,7 +122,5 @@ file 14.avi" >> conc.txt
 
 ffmpeg -f concat -safe 0 -i "conc.txt" -vf scale=$ww:$hh,setsar=1 -pix_fmt yuv420p ./output/p1280fe534v.mp4
 
-rm -f *.avi conc.txt}
-{sh:{traversejson:[0]|[{replace:\
-\\\u|\u|{replace:\\r||{jsonify:{get:code}}}}]}}
-# make sure you use `.t sync+` to make the video synced to the audio
+rm -f *.avi *.ppm conc.txt}
+{sh:{traversejson:[0]|[{replace:\\u|\u|{replace:\\r||{jsonify:{get:code}}}}]}}
