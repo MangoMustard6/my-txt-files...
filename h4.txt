@@ -95,9 +95,9 @@ ffmpeg -i 12v.avi 12h.wav
 ./input/multipitch 12h.wav 12a.wav -0.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 12v.avi -i 12a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 12.avi
 
-ffmpeg -i 12.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.361*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 13v.avi
+ffmpeg -i 5.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,130,%[fx:0.3*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv444p16le,scale=640:640,geq='p(X-((sin((T*5*0+(0))+(Y/H)*(PI*0)))*(-15*0*40)),Y-((sin((T*5*0+(0))+(X/W)*(PI*2)))*(-15*.1*40)))',scale=$w:$h,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 13v.avi
 ffmpeg -i 13v.avi 13h.wav
-./input/multipitch 13h.wav 13a.wav 3 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
+./input/multipitch 13h.wav 13a.wav 1.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 13v.avi -i 13a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 13.avi
 
 
