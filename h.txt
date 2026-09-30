@@ -80,6 +80,27 @@ ffmpeg -i 9v.avi 9h.wav
 ./input/multipitch 9h.wav 9a.wav -2 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
 ffmpeg -i 9v.avi -i 9a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 9.avi
 
+ffmpeg -i 5.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.66*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv444p16le,geq='p(W*(.5-.151)+((X-W*(.5-.151))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5-.151))/(W*(.5-.348)),(Y-H*(.5-.071))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5),H*(.5-.071)+((Y-H*(.5-.071))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5-.151))/(W*(.5-.348)),(Y-H*(.5-.071))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5))',scale=iw:ih,format=yuv444p16le,"geq='p(W*(.5+.137)+((X-W*(.5+.137))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5+.137))/(W*(.5-.348)),(Y-H*(.5-.051))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5),H*(.5-.051)+((Y-H*(.5-.051))/(min(W,H)*0.5))*(1-((-1/4)*PI)*pow(1-pow(min(hypot((X-W*(.5+.137))/(W*(.5-.348)),(Y-H*(.5-.051))/(H*(.5-.348)))/1,1),2),2))*(min(W,H)*0.5))'",scale=iw:ih,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 10v.avi
+ffmpeg -i 10v.avi 10h.wav
+./input/multipitch 7h.wav 7a.wav -1.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
+ffmpeg -i 10v.avi -i 10a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 10.avi
+
+ffmpeg -i 5.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.075*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,hflip,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 11v.avi
+ffmpeg -i 11v.avi 11h.wav
+./input/multipitch 11h.wav 11a.wav 0.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
+ffmpeg -i 11v.avi -i 11a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 11.avi
+
+ffmpeg -i 5.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.925*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 12v.avi
+ffmpeg -i 12v.avi 12h.wav
+./input/multipitch 12h.wav 12a.wav -0.5 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
+ffmpeg -i 12v.avi -i 12a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 12.avi
+
+ffmpeg -i 12.avi -vf "movie=$(magick hald:4 -define modulate:colorspace=hsl -modulate 100,100,%[fx:0.361*200+100] hsv.ppm; echo hsv.ppm),[in]haldclut,format=yuv420p16le" -t $t -c:v utvideo -c:a pcm_s16le 13v.avi
+ffmpeg -i 13v.avi 13h.wav
+./input/multipitch 13h.wav 13a.wav 3 --bungee-args "chunk=32768 flush=1000 instrumentation=1" --no-normalize
+ffmpeg -i 13v.avi -i 13a.wav -map 0:v -map 1:a -c:v utvideo -c:a pcm_s16le 13.avi
+
+
 echo "file 1.avi
 file 2.avi
 file 3.avi
@@ -91,9 +112,13 @@ file 8.avi
 file 9.avi
 file 5.avi
 file 7.avi
-file 8.avi" >> conc.txt
+file 8.avi
+file 10.avi
+file 11.avi
+file 12.avi
+file 13.avi" >> conc.txt
 
-ffmpeg -f concat -safe 0 -i "conc.txt" -vf scale=$ww:$hh,setsar=1 -pix_fmt yuv420p ./output/p1583.mp4
+ffmpeg -f concat -safe 0 -i "conc.txt" -vf scale=$ww:$hh,setsar=1 -pix_fmt yuv420p ./output/p1280fe534v.mp4
 
 rm -f *.avi conc.txt}
 {sh:{traversejson:[0]|[{replace:\\\\u|\u|{replace:\\r||{jsonify:{get:code}}}}]}}
