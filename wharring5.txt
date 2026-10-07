@@ -9,8 +9,8 @@ magick hald:4 -modulate 100,100,0 hslhue_180.ppm
 magick hald:4 -modulate 100,100,112 hslhue_21_6.ppm
 magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm
 
-ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30,fade=in:d=0.3:st=$start3 -af volume=4,afade=in:d=0.3:st=$start3 -ss$start -t 2 -c:v ffv1 -c:a pcm_s16le a.avi
-ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30 -af volume=4 -ss$start2 -t 2 -c:v ffv1 -c:a pcm_s16le b.avi
+ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30,fade=in:d=0.3:st=$start3 -af volume=4,afade=in:d=0.3:st=$start3 -ss $start -t 2 -c:v ffv1 -c:a pcm_s16le a.avi
+ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30 -af volume=4 -ss $start2 -t 2 -c:v ffv1 -c:a pcm_s16le b.avi
 ffmpeg -i b.avi -af afade=out:st=0.1375:d=0.05 -c:v ffv1 -c:a pcm_s16le -t 0.85 c.avi
 ffmpeg -i c.avi aud.wav
 
