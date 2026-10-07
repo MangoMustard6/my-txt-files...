@@ -7,7 +7,7 @@ start3=$(awk -v s="$start" 'BEGIN{ printf "%.4f", s+0.09375}')
 magick hald:4 -modulate 100,100,130 hslhue_54.ppm
 magick hald:4 -modulate 100,100,0 hslhue_180.ppm
 magick hald:4 -modulate 100,100,112 hslhue_21_6.ppm
-magick hald:4 -modulate 100,100,130 hslhue_108_30.ppm
+magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm
 
 ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30,fade=in:d=0.3:st=$start3 -af volume=4,afade=in:d=0.3:st=$start3 -ss$start -t 2 -c:v ffv1 -c:a pcm_s16le a.avi
 ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30 -af volume=4 -ss$start2 -t 2 -c:v ffv1 -c:a pcm_s16le b.avi
@@ -23,14 +23,12 @@ w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=
 h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 c.avi)
 fr=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nokey=1:noprint_wrappers=1 c.avi)
 
-ffmpeg -stream_loop -1 -i "https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t 0.85 -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov
-
 ffmpeg -i c.avi -c:v ffv1 -c:a pcm_s16le -t 0.85 1.avi
 ffmpeg -i c.avi -i 1.wav -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -t 0.85 2.avi
-ffmpeg -i c.avi -i 2.wav -vf "movie=./x.mov[d];movie=hslhue_180.ppm,[in]haldclut,fps=59.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=59.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p16le" -map 0:v -map 1:a -t 0.85 -c:v ffv1 -c:a pcm_s16le 3.avi
+ffmpeg -i c.avi -i 2.wav -vf "movie=$(ffmpeg -stream_loop -1 -i "https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t 0.85 -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov)[d];movie=hslhue_180.ppm,[in]haldclut,fps=59.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=59.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p16le" -map 0:v -map 1:a -t 0.85 -c:v ffv1 -c:a pcm_s16le 3.avi
 ffmpeg -i 2.avi -c:v ffv1 -c:a pcm_s16le -t 0.85 4.avi
 ffmpeg -i 1.avi -c:v ffv1 -c:a pcm_s16le -t 0.425 5.avi
-ffmpeg -i c.avi -i 4.wav -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -t 0.425 6.avi
+ffmpeg -i c.avi -i 4.wav -vf "movie=hslhue_21_6.ppm,[in]haldclut,format=yuv420p" -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -t 0.425 6.avi
 ffmpeg -i 2.avi -c:v ffv1 -c:a pcm_s16le -t 0.425 7.avi
 ffmpeg -i c.avi -i 3.wav -vf "movie=hslhue_108_30.ppm,[in]haldclut,format=yuv420p" -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -t 0.425 8.avi
 ffmpeg -i c.avi -i 2.wav -vf "movie=hslhue_180.ppm,[in]haldclut,format=yuv420p" -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -t 0.425 9.avi
