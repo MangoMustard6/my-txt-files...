@@ -17,6 +17,9 @@ ffmpeg -i c.avi aud.wav
 ./input/mp aud.wav 2.wav -2 --backend signalsmith --no-normalize
 ./input/mp aud.wav 3.wav 3 --backend signalsmith --no-normalize
 ./input/mp aud.wav 4.wav 2 --backend signalsmith --no-normalize
+w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 c.avi)
+h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 c.avi)
+fr=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nokey=1:noprint_wrappers=1 c.avi)
 ffmpeg -i c.avi -c:v ffv1 -c:a pcm_s16le -t 0.85 1.avi
 ffmpeg -i c.avi -i 1.wav -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -t 0.85 2.avi
 ffmpeg -i c.avi -i 2.wav -vf "movie=$(ffmpeg -stream_loop -1 -i "https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t $t -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov; echo ./x.mov)[d];movie=hslhue_180.ppm,[in]haldclut,fps=59.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=59.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p16le" -map 0:v -map 1:a -pix_fmt yuv420p -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p
