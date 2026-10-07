@@ -9,20 +9,25 @@ magick hald:4 -modulate 100,100,0 hslhue_180.ppm
 magick hald:4 -modulate 100,100,112 hslhue_21_6.ppm
 magick hald:4 -modulate 100,100,130 hslhue_108_30.ppm
 
-ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30,fade=in:d=0.3:st=$start3 -af volume=4,afade=in:d=0.3:st=$start3 -ss $start -t 2 -c:v ffv1 -c:a pcm_s16le a.avi
-ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30 -af volume=4 -ss $start2 -t 2 -c:v ffv1 -c:a pcm_s16le b.avi
+ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30,fade=in:d=0.3:st=$start3 -af volume=4,afade=in:d=0.3:st=$start3 -ss$start -t 2 -c:v ffv1 -c:a pcm_s16le a.avi
+ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=30 -af volume=4 -ss$start2 -t 2 -c:v ffv1 -c:a pcm_s16le b.avi
 ffmpeg -i b.avi -af afade=out:st=0.1375:d=0.05 -c:v ffv1 -c:a pcm_s16le -t 0.85 c.avi
 ffmpeg -i c.avi aud.wav
+
 ./input/mp aud.wav 1.wav 1 --backend signalsmith --no-normalize
 ./input/mp aud.wav 2.wav -2 --backend signalsmith --no-normalize
 ./input/mp aud.wav 3.wav 3 --backend signalsmith --no-normalize
 ./input/mp aud.wav 4.wav 2 --backend signalsmith --no-normalize
+
 w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 c.avi)
 h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 c.avi)
 fr=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nokey=1:noprint_wrappers=1 c.avi)
+
+ffmpeg -stream_loop -1 -i "https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t 0.85 -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov
+
 ffmpeg -i c.avi -c:v ffv1 -c:a pcm_s16le -t 0.85 1.avi
 ffmpeg -i c.avi -i 1.wav -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -t 0.85 2.avi
-ffmpeg -i c.avi -i 2.wav -vf "movie=$(ffmpeg -stream_loop -1 -i "https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t $t -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov; echo ./x.mov)[d];movie=hslhue_180.ppm,[in]haldclut,fps=59.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=59.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p16le" -map 0:v -map 1:a -pix_fmt yuv420p -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p
+ffmpeg -i c.avi -i 2.wav -vf "movie=./x.mov[d];movie=hslhue_180.ppm,[in]haldclut,fps=59.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=59.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p16le" -map 0:v -map 1:a -t 0.85 -c:v ffv1 -c:a pcm_s16le 3.avi
 ffmpeg -i 2.avi -c:v ffv1 -c:a pcm_s16le -t 0.85 4.avi
 ffmpeg -i 1.avi -c:v ffv1 -c:a pcm_s16le -t 0.425 5.avi
 ffmpeg -i c.avi -i 4.wav -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -t 0.425 6.avi
@@ -33,10 +38,12 @@ ffmpeg -i 5.avi -vf hflip -c:v ffv1 -c:a pcm_s16le -t 0.425 10.avi
 ffmpeg -i 7.avi -c:v ffv1 -c:a pcm_s16le -t 0.425 11.avi
 ffmpeg -i 8.avi -c:v ffv1 -c:a pcm_s16le -t 0.425 12.avi
 ffmpeg -i c.avi -af volume=0 -c:v ffv1 -c:a pcm_s16le -ss 0.1875 -t 0.85 16.avi
+
 ffmpeg -i "concat:1.avi\u007c2.avi\u007c3.avi\u007c4.avi\u007c5.avi\u007c6.avi\u007c7.avi\u007c8.avi\u007c9.avi\u007c10.avi\u007c11.avi\u007c12.avi" -c:v ffv1 -c:a pcm_s16le d.avi
 ffmpeg -i d.avi -vf scale=640:360,setsar=1:1,fps=30,fade=in:d=0.2:st=0.3 -af atrim=end=2.625,"adelay='281.25\u007c281.25'" -c:v ffv1 -c:a pcm_s16le e.avi
 ffmpeg -i d.avi -vf scale=640:360,setsar=1:1,fps=30 -c:v ffv1 -c:a pcm_s16le f.avi
 ffmpeg -i e.avi -i f.avi -filter_complex "[0:v]lutrgb=val/2:val/2:val/2,hflip,format=gbrp[base];[1:v]pad=iw*2:ih*2:(iw-ow)/2:(ih-oh)/2,scale=iw/2:-1,format=gbrp[overlay];[1:v]scale=iw/2:ih/2,lutrgb=r=0:g=0:b=0,pad=iw*2:ih*2:(iw-ow)/2:(ih-oh)/2:color=0x00FF00,gblur=12,format=rgba,negate,colorchannelmixer=0:0:0:0:0:0:0:0:0:0:0:0:0:1:0:0[shadow];[base][shadow]overlay=(W-w)/2+10:(H-h)/2+10,format=gbrp[tmp];[tmp][overlay]blend=all_mode=addition,zoompan=z='min(2,2-(on*0.18))':x=iw/2-(iw/zoom/2):y=ih/2-(ih/zoom/2):s=640x360:d=0:fps=30[v];[0:a][1:a]amix=2,volume=2[a]" -map "[v]" -map "[a]" -pix_fmt yuv420p -c:v ffv1 -c:a pcm_s16le g.avi
+
 ffmpeg -i g.avi before.wav
 sox before.wav after.wav reverb 50
 ffmpeg -i g.avi -i after.wav -map 0:v -map 1:a -shortest -c:v ffv1 -c:a pcm_s16le h.avi
