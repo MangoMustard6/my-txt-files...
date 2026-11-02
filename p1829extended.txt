@@ -1,4 +1,4 @@
-Type "usage" in arg:0 and you will get the full command usage {set:s|{unix}}
+{set:s|{unix}}
 {if:{arg:0}|=|usage|then:
   {embedjson:{
     "title": "Preview 1280 FFmpeg Extended (my version)/Preview 1829 Extended",
@@ -47,7 +47,7 @@ magick hald:4 -modulate 100,100,112 hslhue_22.ppm
 magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm
 magick hald:4 -modulate 100,100,228 hslhue_230_4.ppm
 
-ffmpeg -stream_loop -1 -i $FILE_1 -vf fps=29.97 -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
+ffmpeg -stream_loop -1 -i $FILE_1 -vf fps=29.97,format=yuv420p -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
 d=$(ffprobe -i 0.avi -show_entries format=duration -v quiet -of csv="p=0")
 
 ffmpeg -i 0.avi -ss 0 -to $t -c:a pcm_s16le 0.wav
@@ -77,13 +77,13 @@ ffmpeg -i 0.avi -i p1.wav -vf "format=gray,curves=r=0/0 0.5/0 1/0:g=0/1 0.5/0 1/
 {if:{arg:2}|=|true|then:
 ffmpeg -i 0.avi -i p2.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le,"crop=iw/2:ih:iw/2:0,split[right][tmp];[tmp]hflip[left];[left][right]hstack",format=yuv444p,scale=640:640,drawbox=t=1,"geq='p(X-((sin((T*5*4.5+(0.0265*15))+(Y/H)*(PI*5)))*(-15*1.6)),Y-((sin((T*5*0+(0*15))+(X/W)*(PI*0)))*(-15*0)))'",scale=$w:$h,format=yuv420p -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 3.avi
 |else:
-ffmpeg -i modfps.avi -i p2.wav -vf "movie=$(ffmpeg -stream_loop -1 -i "https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t $t -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov; echo ./x.mov)[d];movie=hslhue_180.ppm,[in]haldclut,fps=29.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=29.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p16le" -map 0:v -map 1:a -pix_fmt yuv420p -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 3.avi
+ffmpeg -i 0.avi -i p2.wav -vf "movie=$(ffmpeg -stream_loop -1 -i "https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t $t -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov; echo ./x.mov)[d];movie=hslhue_180.ppm,[in]haldclut,fps=29.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=29.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p16le" -map 0:v -map 1:a -pix_fmt yuv420p -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 3.avi
 }
 
 ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 4a.avi
 ffmpeg -i 4a.avi -i p8.wav -vf negate -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 4b.avi
 ffmpeg -i 4a.avi -t $t4 -c:v ffv1 -c:a pcm_s16le 4c.avi
-ffmpeg -i "concat:4a.avi|4b.avi|4c.avi|4d.avi|4e.avi|4f.avi|4e.avi|4f.avi" -c:v ffv1 -c:a pcm_s16le 4.avi
+ffmpeg -i "concat:4a.avi|4b.avi|4c.avi" -c:v ffv1 -c:a pcm_s16le 4.avi
 
 ffmpeg -i 0.avi -i 0.wav -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 4_1.avi
 ffmpeg -i 0.avi -i p7.wav -vf negate,rotate=PI,format=yuv420p -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 4_2.avi
@@ -108,7 +108,7 @@ ffmpeg -i 0.avi -i p12.wav -vf "movie=hslhue_230_4.ppm,[in]haldclut",format=yuv4
 ffmpeg -i 9.avi -t $t2 -c:v ffv1 -c:a pcm_s16le 13.avi
 ffmpeg -i 0.avi -vf colorchannelmixer=0:0:1:0:0:1:0:0:1:0:0,format=yuv420p -t $t2 -c:v ffv1 -c:a pcm_s16le 14.avi
 ffmpeg -i 0.avi -i p6.wav -vf "format=gray,curves=r=0/0 0.5/0.4980392156862745 1/1:g=0/1 0.5/0 1/1:b=0/0 0.5/1 1/1",format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 15.avi
-ffmpeg -i 0.avi -i p1.wav -vf "format=rgba,colorchannelmixer=ra=0.1:ba=-0.1,huesaturation=0:0.5,huesaturation=0:0.5,format=yuv420p[in];movie=hslhue_180.ppm,[in]haldclut,format=yuv420p16le,scroll=0:0:.5,frei0r=mirr0r:-.5" -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 16.avi
+ffmpeg -i 0.avi -i p1.wav -vf "format=rgba,colorchannelmixer=ra=0.1:ba=-0.1,huesaturation=0:0.5,huesaturation=0:0.5,format=yuv420p[in];movie=hslhue_180.ppm,[in]haldclut,format=yuv420p16le,scroll=0:0:.5,frei0r=mirr0r:-.5,format=yuv420p" -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 16.avi
 ffmpeg -i 0.avi -i p10.wav -vf "format=gray,curves=r=0/1 0.5/0 1/1:g=0/0 0.5/0 1/0:b=0/0 0.5/0 1/0",format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 17.avi
 ffmpeg -i 9.avi -t $t2 -c:v ffv1 -c:a pcm_s16le 18.avi
 ffmpeg -i 0.avi -i p6.wav -vf "movie=hslhue_-54.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 19.avi
@@ -127,7 +127,7 @@ ffmpeg -i 0.avi -i p8.wav -vf hflip -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_
 ffmpeg -i 0.avi -i p5.wav -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 29.avi
 ffmpeg -i 0.avi -i p11.wav -vf "hflip,fade=t=out:st=0:d=$t,format=yuv420p" -af "afade=t=out:st=0:d=$t" -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 30.avi
 
-ffmpeg -i "concat:1.avi|2.avi|3.avi|4.avi|4_25.avi|4_75.avi|5.avi|6.avi|7.avi|8.avi|9.avi|10.avi|11.avi|12.avi|13.avi|14.avi|15.avi|16.avi|17.avi|18.avi|19.avi|20.avi|21.avi|22.avi|23.avi|24.avi|25and26.avi|27.avi|28.avi|29.avi|30.avi" -vf scale=$ww:$hh,setsar=1{if:{arg:3}|=|p&g|then:,colormatrix=bt601:bt709,format=yuv420p|else:{if:{arg:3}|=|scfr|then:,colormatrix=bt709:bt601,format=yuv420p|else:}} -preset ultrafast ./output/pwhatextended.mp4}
+ffmpeg -i "concat:1.avi|2.avi|3.avi|4.avi|4_25.avi|4_75.avi|5.avi|6.avi|7.avi|8.avi|9.avi|10.avi|11.avi|12.avi|13.avi|14.avi|15.avi|16.avi|17.avi|18.avi|19.avi|20.avi|21.avi|22.avi|23.avi|24.avi|25and26.avi|27.avi|28.avi|29.avi|30.avi" -vf scale=$ww:$hh,setsar=1{if:{arg:3}|=|p&g|then:,colormatrix=bt601:bt709,format=yuv420p|else:{if:{arg:3}|=|scfr|then:,colormatrix=bt709:bt601,format=yuv420p|else:}} -preset ultrafast -pix_fmt yuv420p ./output/pwhatextended.mp4}
     {sh:{js:console.log(`{get:code}`)}}
     {embedjson:{
       "title": "Preview 1280 FFmpeg Extended (my version)/Preview 1829 Extended",
