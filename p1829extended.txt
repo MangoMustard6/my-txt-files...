@@ -28,7 +28,6 @@ Type "usage" in arg:0 and you will get the full command usage {set:s|{unix}}
   |else:
     {set:code|load {iv}
 load https://file.garden/aTXso15ukD3mnuPI/multipitch multipitch.exe
-load https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4 tvsim.mp4
 load https://file.garden/akpXUy7cShbwSW4u/LUT.cube invlum.cube
 load https://file.garden/aRlNExn-C17HIWzw/Cold_Major.cube ColdMajor.cube
 vidlen=$(ffprobe -i $FILE_1 -show_entries format=duration -v quiet -of csv="p=0")
@@ -48,7 +47,7 @@ magick hald:4 -modulate 100,100,112 hslhue_22.ppm
 magick hald:4 -modulate 100,130,160 hslhue_108_30.ppm
 magick hald:4 -modulate 100,100,228 hslhue_230_4.ppm
 
-ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
+ffmpeg -stream_loop -1 -i $FILE_1 -vf fps=29.97 -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
 d=$(ffprobe -i 0.avi -show_entries format=duration -v quiet -of csv="p=0")
 
 ffmpeg -i 0.avi -ss 0 -to $t -c:a pcm_s16le 0.wav
@@ -71,22 +70,19 @@ w=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=
 h=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 0.avi)
 ww=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 $FILE_1)
 hh=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nokey=1:noprint_wrappers=1 $FILE_1)
-fc=$(ffprobe -v error -select_streams v:0 -show_entries stream=nb_frames -of default=nokey=1:noprint_wrappers=1 0.avi)
+fr=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nokey=1:noprint_wrappers=1 0.avi)
 
 ffmpeg -i 0.avi -i 0.wav -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 1.avi
 ffmpeg -i 0.avi -i p1.wav -vf "format=gray,curves=r=0/0 0.5/0 1/0:g=0/1 0.5/0 1/0:b=0/0 0.5/0 1/1",format=yuv420p -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 2.avi
 {if:{arg:2}|=|true|then:
 ffmpeg -i 0.avi -i p2.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le,"crop=iw/2:ih:iw/2:0,split[right][tmp];[tmp]hflip[left];[left][right]hstack",format=yuv444p,scale=640:640,drawbox=t=1,"geq='p(X-((sin((T*5*4.5+(0.0265*15))+(Y/H)*(PI*5)))*(-15*1.6)),Y-((sin((T*5*0+(0*15))+(X/W)*(PI*0)))*(-15*0)))'",scale=$w:$h,format=yuv420p -map 0:v -map 1:a -t $t -c:v ffv1 -c:a pcm_s16le 3.avi
 |else:
-ffmpeg -i 0.avi -i p2.wav -vf "movie=hslhue_180.ppm[h];movie=./input/tvsim.mp4:loop=(2^31)-1,trim=duration=$d[d];[0]format=rgb48le,scale=2160:2160,format=bgr32,crop=iw/2:ih:iw/2:0,split[right][tmp];[tmp]hflip[left];[left][right]hstack[00];[d]scale=2160:2160,fps=29.97,eq=contrast='(1-0.70)*5':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1[v];[v][h]haldclut,format=yuv420p" -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le 3.avi
+ffmpeg -i modfps.avi -i p2.wav -vf "movie=$(ffmpeg -stream_loop -1 -i "https://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t $t -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov; echo ./x.mov)[d];movie=hslhue_180.ppm,[in]haldclut,fps=29.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=29.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p16le" -map 0:v -map 1:a -pix_fmt yuv420p -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 3.avi
 }
 
-ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 4a.avi
-ffmpeg -i 0.avi -i p8.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le,negate,vflip,hflip,format=yuv420p -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 4b.avi
-ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t6 -c:v ffv1 -c:a pcm_s16le 4c.avi
-ffmpeg -i 0.avi -i p8.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le,negate,vflip,hflip,format=yuv420p -map 0:v -map 1:a -t $t6 -c:v ffv1 -c:a pcm_s16le 4d.avi
-ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t7 -c:v ffv1 -c:a pcm_s16le 4e.avi
-ffmpeg -i 0.avi -i p8.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le,negate,vflip,hflip,format=yuv420p -map 0:v -map 1:a -t $t7 -c:v ffv1 -c:a pcm_s16le 4f.avi
+ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_54.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 4a.avi
+ffmpeg -i 4a.avi -i p8.wav -vf negate -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 4b.avi
+ffmpeg -i 4a.avi -t $t4 -c:v ffv1 -c:a pcm_s16le 4c.avi
 ffmpeg -i "concat:4a.avi|4b.avi|4c.avi|4d.avi|4e.avi|4f.avi|4e.avi|4f.avi" -c:v ffv1 -c:a pcm_s16le 4.avi
 
 ffmpeg -i 0.avi -i 0.wav -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 4_1.avi
@@ -98,22 +94,22 @@ ffmpeg -i 0.avi -i p9.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le
 ffmpeg -i "concat:4_1.avi|4_2.avi|4_1.avi|4_2.avi|4_3.avi|4_4.avi|4_3.avi|4_4.avi|4_5.avi|4_6.avi|4_5.avi|4_6.avi|4_3.avi|4_4.avi|4_3.avi|4_4.avi" -c:v ffv1 -c:a pcm_s16le 4_25.avi
 ffmpeg -i 4_25.avi -vf "negate,lutrgb='if(gt(val,((60/100)*255)),255,0)':g='if(gt(val,((60/100)*255)),255,0)':b='if(gt(val,((60/100)*255)),255,0)'",format=yuv420p -preset ultrafast -qp 1 -tune fastdecode -c:v ffv1 -c:a pcm_s16le 4_251.avi
 ffmpeg -i 4_251.avi -c:a pcm_s16le 4_252.wav
-./input/multipitch.exe 4_252.wav out.wav -4 --backend signalsmith --no-normalize
+./input/multipitch.exe 4_252.wav out.wav -5 --backend signalsmith --no-normalize
 ffmpeg -i 4_251.avi -i out.wav -map 0:v -map 1:a -c:v ffv1 -c:a pcm_s16le -preset ultrafast 4_75.avi
 
-ffmpeg -i 0.avi -i 00.wav -filter_complex "[0:v]format=yuv444p,geq='p((W/2)+(X-(W/2))/lerp(1,2,T/$t2),(H/2)+(Y-(H/2))/1)',scale=$w:$h,format=yuv420p,split=2[orig][proc];[proc]split=3[a][b][t];[a]format=gray,curves=r=0.5/0 1/0:g=0.5/0 1/0:b=0.5/0 1/0[aa];[b]format=gray,curves=all=0.5/0 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay[grad];[orig][grad]blend=all_expr='A*(1-min(T/($t2),1))+B*min(T/($t2),1)'[out]" -map "[out]" -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 5.avi
+ffmpeg -i 0.avi -vf fps=59.97,format=yuv444p,rotate=0:iw*1.1:ih*1.1,"geq='p((W/2)+(X-(W/2))/lerp(1,2,(1-cos(T*(2/1.3)/$t2))),(H/2)+(Y-(H/2))/1)'",scale=iw:ih,crop=$w:$h,format=yuv420p,"split[base][gray];[gray]split=3[a][b][t];[a]format=gray,curves=r=0.5/0 1/0:g=0.5/0 1/0:b=0.5/0 1/0[aa];[b]format=gray,curves=all=0.5/0 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay[gray];[base][gray]blend=all_expr='A*(1-T/$t2)+B*(T/$t2)'",fps=$fr -t $t2 -c:v ffv1 -c:a pcm_s16le 5.avi
 ffmpeg -i 0.avi -i p4.wav -vf "movie=hslhue_22.ppm,[in]haldclut",format=rgb48le,hflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 6.avi
 ffmpeg -i 2.avi -t $t2 -c:v ffv1 -c:a pcm_s16le 7.avi
 ffmpeg -i 0.avi -i p5.wav -vf "movie=hslhue_108_30.ppm,[in]haldclut",format=rgb48le,format=yuv444p,scale=640:640,"geq='p(X-((sin((T*5*0+(0*15))+(Y/H)*(PI*0)))*(-15*0)),Y-((sin((T*5*0+(0.17946*15))+(X/W)*(PI*6.09)))*(-15*0.72)))'",scale=$w:$h,setsar=1:1,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 8.avi
 ffmpeg -i 0.avi -i p2.wav -vf lut3d=./input/ColdMajor.cube,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 9.avi
 ffmpeg -i 0.avi -i p9.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 10.avi
 ffmpeg -i 0.avi -i p1.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le,"split=3[a][b][t];[a]format=gray,curves=r=0.5/0 1/0:g=0.5/0 1/0:b=0.5/0 1/0[aa];[b]format=gray,curves=all=0.5/0 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay",format=yuv444p16le,scale=640:640,"geq='p(X-((sin((T*5*0+(lerp(0,(0.623/15),T/$t2)*15))+(Y/H)*(PI*lerp(0,32,T/$t2))))*(-15*lerp(0,20,T/$t2))),Y-((sin((T*5*0+(lerp(0,(0.623/15),T/$t2)*15))+(X/W)*(PI*lerp(0,32,T/$t2))))*(-15*lerp(0,20,T/$t2))))'",scale=$w:$h,setsar=1:1,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 11.avi
-ffmpeg -i 0.avi -i p12.wav -vf "movie=hslhue_230_4.ppm,[in]haldclut",format=rgb48le,format=yuv444p,"geq='p((W/2)+(X-(W/2))/(1+sin(PI*T/$t2)*sin(PI*T/$t2)),(H/2)+(Y-(H/2)))'",scale=$w:$h,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 12.avi
+ffmpeg -i 0.avi -i p12.wav -vf "movie=hslhue_230_4.ppm,[in]haldclut",format=yuv420p16le,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 12.avi
 ffmpeg -i 9.avi -t $t2 -c:v ffv1 -c:a pcm_s16le 13.avi
-ffmpeg -i 0.avi -i 00.wav -vf colorchannelmixer=0:0:1:0:0:1:0:0:1:0:0,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 14.avi
+ffmpeg -i 0.avi -vf colorchannelmixer=0:0:1:0:0:1:0:0:1:0:0,format=yuv420p -t $t2 -c:v ffv1 -c:a pcm_s16le 14.avi
 ffmpeg -i 0.avi -i p6.wav -vf "format=gray,curves=r=0/0 0.5/0.4980392156862745 1/1:g=0/1 0.5/0 1/1:b=0/0 0.5/1 1/1",format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 15.avi
-ffmpeg -i 2.avi -t $t2 -c:v ffv1 -c:a pcm_s16le 16.avi
-ffmpeg -i 0.avi -i p10.wav -vf lut3d=./input/invlum.cube,hue=b=-0.225,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 17.avi
+ffmpeg -i 0.avi -i p1.wav -vf "format=rgba,colorchannelmixer=ra=0.1:ba=-0.1,huesaturation=0:0.5,huesaturation=0:0.5,format=yuv420p[in];movie=hslhue_180.ppm,[in]haldclut,format=yuv420p16le,scroll=0:0:.5,frei0r=mirr0r:-.5" -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 16.avi
+ffmpeg -i 0.avi -i p10.wav -vf "format=gray,curves=r=0/1 0.5/0 1/1:g=0/0 0.5/0 1/0:b=0/0 0.5/0 1/0",format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 17.avi
 ffmpeg -i 9.avi -t $t2 -c:v ffv1 -c:a pcm_s16le 18.avi
 ffmpeg -i 0.avi -i p6.wav -vf "movie=hslhue_-54.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 19.avi
 ffmpeg -i 2.avi -t $t2 -c:v ffv1 -c:a pcm_s16le 20.avi
@@ -122,10 +118,10 @@ ffmpeg -i 0.avi -i p7.wav -vf "movie=hslhue_-54.ppm,[in]haldclut",format=rgb48le
 ffmpeg -i 0.avi -i p1.wav -vf "split=3[a][b][t];[a]format=gray,curves=r=0/1 0.5/1 1/0:g=0/0 0.5/1 1/0:b=0/0 0.5/0 1/0[aa];[b]format=gray,curves=all=0/1 0.5/1 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay",vflip,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 23.avi
 ffmpeg -i 0.avi -i p8.wav -vf "split=3[a][b][t];[a]format=gray,curves=r=0/1 0.5/1 1/0:g=0/0 0.5/1 1/0:b=0/0 0.5/0 1/0[aa];[b]format=gray,curves=all=0/1 0.5/1 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay,hue=b=-0.225,vflip,hflip[g];movie=hslhue_-54.ppm,[g]haldclut",format=rgb48le,lut3d=./input/invlum.cube,format=yuv420p -map 0:v -map 1:a -t $t2 -c:v ffv1 -c:a pcm_s16le 24.avi
 ffmpeg -i 0.avi -i p2.wav -vf "crop=iw:ih/2:0:0,split[top][tmp];[tmp]vflip[bottom];[top][bottom]vstack,crop=iw/2:ih:0:0,split[left][tmp];[tmp]hflip[right];[left][right]hstack,negate,split=3[a][b][t];[a]format=gray,curves=r=0/0 1/1:g=0/0 1/1:b=0/0 1/0[aa];[b]format=gray,curves=all=0/1 1/1[bb];[aa][bb]alphamerge[c];[t][c]overlay" -pix_fmt yuv420p -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 25a.avi
-ffmpeg -i 0.avi -i p9.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 26a.avi
-ffmpeg -i 3.avi -t $t6 -c:v ffv1 -c:a pcm_s16le 25b.avi
-ffmpeg -i 0.avi -i p9.wav -vf "format=gray,curves=r=0/1 0.5/1 1/0:g=0/0.3607843137254902 0.5/1 1/0.047058823529411764:b=0/0 0.5/1 1/0.8235294117647058,format=yuv420p" -map 0:v -map 1:a -t $t6 -c:v ffv1 -c:a pcm_s16le 26b.avi
-ffmpeg -i "concat:25a.avi|26a.avi|25b.avi|26b.avi|25b.avi|26b.avi" -c:v ffv1 -c:a pcm_s16le 25and26.avi
+ffmpeg -i 0.avi -i p9.wav -vf "movie=hslhue_180.ppm,[in]haldclut",format=rgb48le,format=yuv420p -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 25b.avi
+ffmpeg -i 0.avi -i p2.wav -vf lut3d=./input/ColdMajor.cube,format=yuv420p -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 26a.avi
+ffmpeg -i 0.avi -vf "geq=r='0':g='0':b='0'",format=yuv420p -af volume=0 -t $t4 -c:v ffv1 -c:a pcm_s16le 26b.avi
+ffmpeg -i "concat:25a.avi|25b.avi|26a.avi|26b.avi" -c:v ffv1 -c:a pcm_s16le 25and26.avi
 ffmpeg -i 0.avi -i p1.wav -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 27.avi
 ffmpeg -i 0.avi -i p8.wav -vf hflip -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 28.avi
 ffmpeg -i 0.avi -i p5.wav -map 0:v -map 1:a -t $t4 -c:v ffv1 -c:a pcm_s16le 29.avi
