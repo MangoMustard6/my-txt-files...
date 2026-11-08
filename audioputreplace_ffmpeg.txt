@@ -1,0 +1,86 @@
+{set:usage|**audioputreplace_ffmpeg**{newline}Replaces a video's audio with audio from another file.{newline}`.t {tagname} <video url> <audio or video url> [options]`{newline}{newline}`--longest`: lasts as long as the longer file (holds the last frame or pads silence){newline}`--loop`: loops the video until the audio ends{newline}`--keep`: mixes the new audio with the video's original audio instead of replacing it{newline}`--volume N`: scales the new audio (0 to 10, default 1){newline}`--offset N`: delays the new audio by N seconds, or skips the first N seconds if negative (-30 to 30){newline}{newline}Default: ends when the shorter file ends. Options can be in any order.}
+{if:{argslen}|=|0|then:{get:usage}|else:{if:{argslen}|=|1|then:{get:usage}|else:{set:code|load {arg:0}
+load {arg:1}
+
+set -f
+set -- $(cat <<'ARGS_7f3a'
+{args}
+ARGS_7f3a
+)
+shift 2
+MODE=default
+VOL=1
+OFF=0
+KEEP=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --longest) MODE=longest ;;
+    --loop) MODE=loop ;;
+    --keep) KEEP=1 ;;
+    --volume) shift; VOL="$1" ;;
+    --offset) shift; OFF="$1" ;;
+  esac
+  shift
+done
+
+VOL=$(awk -v v="$VOL" 'BEGIN\u007b if (v ~ /^[0-9]*\.?[0-9]+$/ && v+0 <= 10) print v; else print 1\u007d')
+OFF=$(awk -v v="$OFF" 'BEGIN\u007b if (v ~ /^-?[0-9]*\.?[0-9]+$/ && v+0 <= 30 && v+0 >= -30) print v; else print 0\u007d')
+OFFMS=$(awk -v o="$OFF" 'BEGIN\u007b printf "%d", (o > 0 ? o : 0) * 1000\u007d')
+SKIP=$(awk -v o="$OFF" 'BEGIN\u007b printf "%.3f", (o < 0 ? -o : 0)\u007d')
+
+has_v=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_type -of csv=p=0 "$FILE_1")
+has_a=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 "$FILE_2")
+has_a0=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_type -of csv=p=0 "$FILE_1")
+if [ "$has_v" != "video" ]; then
+  echo "The first file has no video track."
+  exit 1
+fi
+if [ "$has_a" != "audio" ]; then
+  echo "The second file has no audio track."
+  exit 1
+fi
+
+vd=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$FILE_1")
+ad=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$FILE_2")
+AE=$(awk -v b="$ad" -v o="$OFF" 'BEGIN\u007b b = b + o; if (b < 0.1) b = 0.1; printf "%.3f", b\u007d')
+mx=$(awk -v a="$vd" -v b="$AE" 'BEGIN\u007b m = (b > a+0) ? b : a+0; printf "%.3f", m\u007d')
+
+AF="volume=$VOL"
+if [ "$OFFMS" -gt 0 ]; then
+  AF="$AF,adelay=$OFFMS:all=1"
+fi
+
+VCHAIN="scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p"
+if [ "$MODE" = "longest" ]; then
+  VCHAIN="tpad=stop_mode=clone:stop_duration=$mx,$VCHAIN"
+fi
+
+FC="[0:v:0]$VCHAIN[v];[1:a:0]$AF[a1]"
+if [ "$KEEP" = "1" ] && [ "$has_a0" = "audio" ]; then
+  FC="$FC;[0:a:0][a1]amix=inputs=2:duration=longest:normalize=0[a]"
+else
+  FC="$FC;[a1]anull[a]"
+fi
+AMAP="[a]"
+if [ "$MODE" = "longest" ]; then
+  FC="$FC;[a]apad[ap]"
+  AMAP="[ap]"
+fi
+
+LOOP=""
+if [ "$MODE" = "loop" ]; then
+  LOOP="-stream_loop -1"
+fi
+ASS=""
+if [ "$SKIP" != "0.000" ]; then
+  ASS="-ss $SKIP"
+fi
+TLIM="-shortest"
+if [ "$MODE" = "longest" ]; then
+  TLIM="-t $mx"
+fi
+if [ "$MODE" = "loop" ]; then
+  TLIM="-t $AE"
+fi
+
+ffmpeg -y -nostdin $LOOP -i "$FILE_1" $ASS -i "$FILE_2" -filter_complex "$FC" -map "[v]" -map "$AMAP" $TLIM -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart ./output/audioputreplace.mp4}{sh:{js:console.log(`{get:code}`)}}}}
