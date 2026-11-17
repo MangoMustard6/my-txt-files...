@@ -21,10 +21,10 @@ magick hald:4 -modulate 100,100,%[fx:180/1.8+100] hslhue_180.ppm
 magick hald:4 -modulate 100,100,%[fx:21.6/1.8+100] hslhue_21_6.ppm
 magick hald:4 -modulate 100,130,%[fx:108/1.8+100] hslhue_108_30.ppm
 
-{if:{arg:3}|=|1|then:ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss 0 -to $s -c:v ffv1 -c:a pcm_s16le pre.avi
+{if:{arg:3}|=|1|then:ffmpeg -stream_loop -1 -i $FILE_1 -ss 0 -to $s -c:v ffv1 -c:a pcm_s16le pre.avi
 ffmpeg -stream_loop -1 -i $FILE_1 -ss 0 -to $s -c:a pcm_s16le pre.wav|else:}
 
-ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
+ffmpeg -stream_loop -1 -i $FILE_1 -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
 d=$(ffprobe -i 0.avi -show_entries format=duration -v quiet -of csv="p=0")
 
 ffmpeg -stream_loop -1 -i $FILE_1 -vf scale=640:360,setsar=1:1,fps=29.97 -ss $s -to $t28_end -c:v ffv1 -c:a pcm_s16le 0_long.avi
