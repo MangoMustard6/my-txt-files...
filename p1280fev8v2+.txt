@@ -8,11 +8,11 @@ e={or:{arg:1}|0.85}
 custom_t28={or:{arg:2}|5}
 use_pre={or:{arg:3}|0}
 
-t=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", e}')
-t2=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN{ printf "%.4f", (e/2)}')
-t3=$(awk -v s="$s" -v e="$e" 'BEGIN{ printf "%.4f", s+e}')
-t28=$(awk -v vidlen="$vidlen" -v e="$e" -v custom="$custom_t28" 'BEGIN{ if (custom > 0) printf "%.4f", custom; else printf "%.4f", (e/2)}')
-t28_end=$(awk -v s="$s" -v t28="$t28" 'BEGIN{ printf "%.4f", s+t28}')
+t=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN\u007b printf "%.4f", e\u007d')
+t2=$(awk -v vidlen="$vidlen" -v e="$e" 'BEGIN\u007b printf "%.4f", (e/2)\u007d')
+t3=$(awk -v s="$s" -v e="$e" 'BEGIN\u007b printf "%.4f", s+e\u007d')
+t28=$(awk -v vidlen="$vidlen" -v e="$e" -v custom="$custom_t28" 'BEGIN\u007b if (custom > 0) printf "%.4f", custom; else printf "%.4f", (e/2)\u007d')
+t28_end=$(awk -v s="$s" -v t28="$t28" 'BEGIN\u007b printf "%.4f", s+t28\u007d')
 
 magick hald:4 -modulate 100,100,%[fx:54/1.8+100] hslhue_54.ppm
 magick hald:4 -modulate 100,100,%[fx:-54/1.8+100] hslhue_-54.ppm
@@ -20,7 +20,7 @@ magick hald:4 -modulate 100,100,%[fx:180/1.8+100] hslhue_180.ppm
 magick hald:4 -modulate 100,100,%[fx:21.6/1.8+100] hslhue_21_6.ppm
 magick hald:4 -modulate 100,130,%[fx:108/1.8+100] hslhue_108_30.ppm
 
-{if:{arg:3}|=|1|then:ffmpeg -stream_loop -1 -i $FILE_1 -ss 0 -to $s -c:v ffv1 -c:a pcm_s16le pre.avi
+{if:{arg:3}|=|1|then:ffmpeg -stream_loop -1 -i $FILE_1 -ss 0 -to $s -an -c:v ffv1 pre.avi
 ffmpeg -stream_loop -1 -i $FILE_1 -ss 0 -to $s -c:a pcm_s16le pre.wav|else:}
 
 ffmpeg -stream_loop -1 -i $FILE_1 -ss $s -to $t3 -c:v ffv1 -c:a pcm_s16le 0.avi
@@ -68,7 +68,10 @@ fr=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of 
 
 ffmpeg -i 0.avi -t $t -an -c:v ffv1 1.avi
 ffmpeg -i 0.avi -vf "movie=hslhue_54.ppm,[in]haldclut,format=yuv420p" -t $t -an -c:v ffv1 2.avi
-ffmpeg -i modfps.avi -i 2.wav -vf "movie=$(ffmpeg -stream_loop -1 -i "https""://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t $t -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov; echo ./x.mov)[d];movie=hslhue_180.ppm,[in]haldclut,fps=59.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=59.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=#808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p16le"  -map 0:v -map 1:a -pix_fmt yuv420p -t $t -c:v ffv1 -c:a pcm_s16le -preset ultrafast -pix_fmt yuv420p 3.avi
+
+ffmpeg -stream_loop -1 -i "https""://file.garden/aX9mS1junENdw7e-/Project%20Name%209.mp4" -t $t -c:v h264 -preset ultrafast -movflags +faststart -an ./x.mov
+ffmpeg -i 0.avi -vf "movie=./x.mov[d];movie=hslhue_180.ppm,[in]haldclut,fps=59.97,scroll=0:0:0.5,frei0r=mirr0r:0.5,scale=2160:2160,format=bgr32[00];[d]fps=59.97,scale=2160:2160,eq=contrast='(1-0.75)*5.2222222222':eval=frame,format=bgr32,hue=b=-0.033[x];color=s=2160x2160:c=0x808080,format=bgr32[y];[00][x][y]displace=edge=wrap,scale=$w:$h,setsar=1,fps=$fr,format=yuv420p" -an -t $t -c:v ffv1 3.avi
+
 ffmpeg -i 0.avi -t $t2 -an -c:v ffv1 4.avi
 ffmpeg -i 0.avi -vf "movie=hslhue_21_6.ppm,[in]haldclut,hflip,format=yuv420p" -t $t2 -an -c:v ffv1 5.avi
 ffmpeg -i 1.avi -t $t2 -an -c:v ffv1 6.avi
